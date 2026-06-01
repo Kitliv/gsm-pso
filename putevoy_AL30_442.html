@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0F0F0F">
+<title>ПЛ · 442</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+:root{--fire:#E8350F;--fire-dim:rgba(232,53,15,0.12);--coal:#0F0F0F;--surf:#1A1A1A;--card:#222;--line:#2E2E2E;--muted:#666;--dim:#444;--text:#F0F0F0;--sub:#888;--gold:#E8A020;--green:#22A855;--blue:#3D8EE8;--red:#E84040}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--coal);overscroll-behavior:none}
+body{font-family:'IBM Plex Sans',sans-serif;color:var(--text);min-height:100dvh;max-width:430px;margin:0 auto;padding-bottom:90px}
+.hdr{position:sticky;top:0;z-index:50;background:var(--coal);border-bottom:1px solid var(--line);padding:12px 16px 10px}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.hdr-badge{background:var(--fire);color:#fff;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1.5px;padding:3px 8px;border-radius:4px}
+.hdr-st{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--sub)}
+.hdr-st.on{color:var(--green)}.hdr-st.off{color:var(--gold)}
+.veh{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1.5px;line-height:1}
+.veh-sub{font-size:11px;color:var(--sub);margin-top:2px}
+.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+.sc{background:var(--surf);padding:9px 6px;text-align:center}
+.sv{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:var(--gold);line-height:1}
+.sl{font-size:8px;color:var(--sub);margin-top:3px;letter-spacing:0.3px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--surf);border-bottom:1px solid var(--line)}
+.tab{padding:11px 8px;text-align:center;font-size:12px;font-weight:600;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent}
+.tab.act{color:var(--fire);border-bottom-color:var(--fire)}
+.qwrap{padding:10px 12px}
+.qhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.qtitle{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--fire);text-transform:uppercase}
+.qempty{text-align:center;padding:28px 20px;color:var(--dim);font-size:13px}
+.qi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px 14px;margin-bottom:7px;display:flex;align-items:center;gap:10px}
+.qnum{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--dim);min-width:20px}
+.qb{font-size:11px;font-weight:600;padding:3px 8px;border-radius:14px;background:var(--fire-dim);color:var(--fire);white-space:nowrap}
+.qb.eto{background:rgba(34,168,85,.12);color:var(--green)}
+.qb.zan{background:rgba(61,142,232,.12);color:var(--blue)}
+.qb.lozh{background:rgba(102,102,102,.12);color:var(--muted)}
+.qinfo{flex:1;min-width:0}
+.qroute{font-size:12px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qmeta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gold);white-space:nowrap}
+.qdel{background:none;border:none;color:var(--dim);cursor:pointer;padding:6px;font-size:18px;line-height:1;min-width:32px;min-height:32px}
+.qact{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.btn-more{background:transparent;border:1.5px solid var(--line);border-radius:10px;color:var(--sub);font-size:13px;font-weight:600;padding:13px;cursor:pointer;min-height:44px}
+.btn-send{background:var(--fire);border:none;border-radius:10px;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;padding:13px;cursor:pointer;min-height:44px}
+.btn-send:disabled{background:var(--dim)}
+.shint{font-size:11px;color:var(--sub);text-align:center;margin-top:6px}
+.lwrap{padding:10px 12px 0}
+.lmonth{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--fire);text-transform:uppercase;padding:10px 0 5px}
+.pl-card{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.pl-head{display:flex;align-items:center;padding:12px 14px;gap:10px;cursor:pointer}
+.pl-day{text-align:center;min-width:38px}
+.pl-daynum{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--text);line-height:1}
+.pl-daywd{font-size:9px;color:var(--sub);margin-top:-2px}
+.pl-info{flex:1;min-width:0}
+.pl-num{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--sub);margin-bottom:2px}
+.pl-route{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-right{text-align:right}
+.pl-km{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:var(--gold)}
+.pl-kmunit{font-size:10px;color:var(--sub)}
+.pl-body{border-top:1px solid var(--line);display:none}
+.pl-body.open{display:block}
+.pl-section{padding:10px 14px;border-bottom:1px solid var(--line)}
+.pl-section:last-child{border-bottom:none}
+.pl-sec-title{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--fire);text-transform:uppercase;margin-bottom:8px}
+.pl-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pl-field .lbl{font-size:10px;color:var(--sub);margin-bottom:2px}
+.pl-field .val{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text)}
+.pl-field .val.acc{color:var(--gold)}
+.pl-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:14px;background:var(--fire-dim);border:1px solid rgba(232,53,15,.3)}
+.pl-badge .pbtxt{font-size:13px;font-weight:600;color:var(--fire)}
+.pl-spido{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;letter-spacing:1px}
+.pl-arrow{color:var(--dim);margin:0 4px}
+.fab{position:fixed;bottom:22px;right:18px;width:58px;height:58px;border-radius:50%;background:var(--fire);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 18px rgba(232,53,15,.45);z-index:100;-webkit-appearance:none;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.fab svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round;pointer-events:none}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;display:none;align-items:flex-end}
+.ov.open{display:flex}
+.sh{background:var(--surf);border-radius:20px 20px 0 0;width:100%;max-height:94dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:env(safe-area-inset-bottom,16px)}
+.sh-hnd{width:36px;height:4px;background:var(--dim);border-radius:2px;margin:10px auto 0}
+.sh-hdr{padding:12px 16px 0}
+.sh-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px}
+.sh-sub{font-size:11px;color:var(--sub);margin-top:2px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.fb{padding:0 14px}
+.fs{margin-top:14px}
+.fsl{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--fire);text-transform:uppercase;margin-bottom:7px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:2px}
+.chip{padding:8px 12px;border-radius:18px;border:1.5px solid var(--line);font-size:13px;font-weight:500;color:var(--sub);cursor:pointer;background:transparent;min-height:36px;touch-action:manipulation;-webkit-appearance:none}
+.chip.sel{background:var(--fire-dim);border-color:var(--fire);color:var(--fire);font-weight:600}
+.chip.sel.eto{background:rgba(34,168,85,.12);border-color:var(--green);color:var(--green)}
+.chip.sel.zan{background:rgba(61,142,232,.12);border-color:var(--blue);color:var(--blue)}
+.chip.sel.lozh{background:rgba(102,102,102,.15);border-color:var(--dim);color:var(--muted)}
+.ff{margin-bottom:11px}
+.fl{font-size:11px;color:var(--sub);margin-bottom:5px;display:flex;justify-content:space-between}
+.fl b{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--blue);font-weight:400}
+input,select,textarea{width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:9px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:16px;padding:12px 13px;outline:none;-webkit-appearance:none}
+input:focus,select:focus{border-color:var(--fire);background:#1E1510}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.cbox{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:11px 13px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cbox.hl{border-color:var(--gold);background:rgba(232,160,32,.06)}
+.cbl{font-size:12px;color:var(--sub)}
+.cbv{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;color:var(--gold)}
+.cbv.green{color:var(--green)}
+.carry{background:rgba(61,142,232,.08);border:1px solid rgba(61,142,232,.22);border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:12px;color:#7CB8EF;line-height:1.55}
+.carry b{color:var(--blue)}
+.sf{padding:12px 14px 6px}
+.bok{width:100%;background:var(--fire);border:none;border-radius:11px;padding:16px;font-family:'Bebas Neue',sans-serif;font-size:21px;letter-spacing:2px;color:#fff;cursor:pointer;touch-action:manipulation;-webkit-appearance:none;min-height:52px}
+.sov{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.sov.open{display:flex}
+.spin{width:44px;height:44px;border:3px solid var(--line);border-top-color:var(--fire);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.stxt{font-size:15px;color:var(--sub)}
+.toast{position:fixed;bottom:95px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--green);color:#fff;font-size:14px;font-weight:500;padding:10px 20px;border-radius:18px;opacity:0;transition:all .25s;z-index:400;text-align:center;max-width:90vw;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--red)}
+.pl-card.cancelled{opacity:0.45;}
+.pl-card.cancelled .pl-route{text-decoration:line-through;}
+.pl-card.cancelled .pl-km{text-decoration:line-through;color:var(--dim);}
+.cancelled-badge{font-size:10px;color:var(--red);font-weight:600;letter-spacing:0.5px;}
+.empty{text-align:center;padding:48px 20px;color:var(--dim)}
+.eico{font-size:48px;margin-bottom:14px;opacity:.2}
+.ettl{font-size:15px;color:var(--sub);margin-bottom:5px}
+select option{background:var(--card)}
+.car-hidden{display:none !important}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-top">
+    <div class="hdr-badge">МЧС · ПЛ · 2026</div>
+    <div class="hdr-st" id="cst">…</div>
+  <div class="hdr-st" id="sync-status" style="font-size:10px;color:var(--sub)"></div>
+  </div>
+  <div class="veh" id="vn"></div>
+  <div class="veh-sub" id="vs"></div>
+</div>
+<div class="strip">
+  <div class="sc"><div class="sv" id="st">0</div><div class="sl">ВЫЕЗДОВ</div></div>
+  <div class="sc"><div class="sv" id="sk">0</div><div class="sl">КМ</div></div>
+  <div class="sc"><div class="sv" id="sr">0</div><div class="sl">РАСХОД Л</div></div>
+  <div class="sc"><div class="sv" id="sb">0</div><div class="sl">ОСТАТОК Л</div></div>
+</div>
+<div class="tabs">
+  <div class="tab act" id="tq" onclick="swTab('q')">📋 За смену</div>
+  <div class="tab" id="tl" onclick="swTab('l')">📜 Журнал</div>
+</div>
+<div id="pq">
+  <div class="qwrap">
+    <div class="qhdr"><div class="qtitle">Выезды за смену</div></div>
+    <div id="ql"></div>
+    <div class="qempty" id="qe">Нет выездов. Нажми + чтобы добавить.</div>
+    <div class="qact" id="qa" style="display:none">
+      <button class="btn-more" id="bm">+ Ещё выезд</button>
+      <button class="btn-send" id="bs">ОТПРАВИТЬ</button>
+    </div>
+    <div class="shint" id="sh" style="display:none"></div>
+  </div>
+</div>
+<div id="pl" style="display:none">
+  <div class="lwrap" id="lw">
+    <div class="empty" id="le"><div class="eico">📋</div><div class="ettl">Журнал пуст</div><div style="font-size:12px">Отправленные выезды появятся здесь</div></div>
+  </div>
+</div>
+<button class="fab" id="fab" aria-label="Добавить"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+<div class="ov" id="ov">
+<div class="sh" id="sh2">
+  <div class="sh-hnd"></div>
+  <div class="sh-hdr">
+    <div class="sh-title">Новый выезд</div>
+    <div class="sh-sub" id="shsub">Путевой лист · Приказ МЧС №737</div>
+  </div>
+  <div class="fb">
+    <div class="fs">
+      <div class="fsl">01 · Дата выезда</div>
+      <div class="ff"><input type="date" id="fdate"></div>
+    </div>
+    <div class="fs">
+      <div class="fsl">02 · Цель выезда</div>
+      <div class="chips" id="cps">
+        <button class="chip" data-v="ЕТО" data-c="eto">ЕТО</button>
+        <button class="chip" data-v="пожар">Пожар</button>
+        <button class="chip" data-v="возгорание">Возгорание</button>
+        <button class="chip" data-v="ложный" data-c="lozh">Ложный</button>
+        <button class="chip" data-v="занятия" data-c="zan">Занятия</button>
+        <button class="chip" data-v="основная">Основная</button>
+        <button class="chip" data-v="ЧС">ЧС</button>
+        <button class="chip" data-v="ДТП">ДТП</button>
+      </div>
+    </div>
+    <div class="fs">
+      <div class="fsl">03 · Маршрут и время</div>
+      <div class="ff"><div class="fl">Маршрут движения</div><input type="text" id="froute" placeholder="ППД → место выполнения задач → ППД"></div>
+      <div class="r2">
+        <div class="ff"><div class="fl">Время выезда</div><input type="time" id="ftout"></div>
+        <div class="ff"><div class="fl">Возвращение в ППД</div><input type="time" id="ftin"></div>
+      </div>
+    </div>
+    <div class="fs">
+      <div class="fsl">04 · Пробег</div>
+      <div class="carry" id="carry">
+        <b>Спидометр на начало:</b> <b id="cv">—</b> км
+      </div>
+      <div class="ff">
+        <div class="fl">Пробег за выезд, км</div>
+        <input type="number" id="fkm" inputmode="numeric" placeholder="например 7" oninput="recalc()">
+      </div>
+      <div class="cbox"><div class="cbl">Спидометр на конец =</div><div class="cbv" id="spido-end">— км</div></div>
+    </div>
+    <div class="fs" id="pump-sec">
+      <div class="fsl">05 · Наработка двигателя, мин</div>
+      <div class="r2">
+        <div class="ff"><div class="fl">С агрегатом (насос)</div><input type="number" id="fnagr" inputmode="numeric" placeholder="0" oninput="recalc()"></div>
+        <div class="ff"><div class="fl">Без агрегата (хол. ход)</div><input type="number" id="fnno" inputmode="numeric" placeholder="0" oninput="recalc()"></div>
+      </div>
+    </div>
+    <div class="fs">
+      <div class="fsl">06 · Расход топлива по нормам</div>
+      <div class="cbox"><div class="cbl">По пробегу</div><div class="cbv" id="r-probeg" style="font-size:16px">0 л</div></div>
+      <div class="cbox" id="r-agr-box"><div class="cbl">С агрегатом</div><div class="cbv" id="r-agr" style="font-size:16px">0 л</div></div>
+      <div class="cbox" id="r-noagr-box"><div class="cbl">Без агрегата</div><div class="cbv" id="r-noagr" style="font-size:16px">0 л</div></div>
+      <div class="cbox hl"><div class="cbl">ИТОГО расход =</div><div class="cbv" id="rashod">0 л</div></div>
+    </div>
+    <div class="fs">
+      <div class="fsl">07 · Остаток в баке</div>
+      <div class="ff"><div class="fl">Заправлено за выезд, л <span style="color:var(--dim)">(0 если нет)</span></div>
+        <input type="number" id="ffuel" inputmode="decimal" step="0.1" placeholder="0" oninput="recalc()"></div>
+      <div class="cbox"><div class="cbl">Остаток на начало</div><div class="cbv" id="bak-start">— л</div></div>
+      <div class="cbox"><div class="cbl">Остаток на конец =</div><div class="cbv green" id="bak-end">— л</div></div>
+    </div>
+    <div class="fs">
+      <div class="fsl">08 · Водитель</div>
+      <div class="ff"><div class="fl">Фамилия И.О.</div><input type="text" id="fdrv" placeholder="Иванов И.И." autocomplete="name"></div>
+    </div>
+  </div>
+  <div class="sf"><button class="bok" id="bok">Добавить в список</button></div>
+</div>
+</div>
+<div class="ov" id="cancel-ov">
+<div class="sh" style="max-height:60dvh">
+  <div class="sh-hnd"></div>
+  <div class="sh-hdr">
+    <div class="sh-title">Отмена записи</div>
+    <div class="sh-sub">Запись будет зачёркнута и не учтётся в отчёте</div>
+  </div>
+  <div class="fb" style="padding-bottom:8px">
+    <div class="fs">
+      <div class="fsl">Причина отмены</div>
+      <div class="chips" id="cancel-chips">
+        <button class="chip" data-r="Ошибка ввода">Ошибка ввода</button>
+        <button class="chip" data-r="Дубль записи">Дубль записи</button>
+        <button class="chip" data-r="Отмена выезда">Отмена выезда</button>
+        <button class="chip" data-r="other">Другое</button>
+      </div>
+      <div class="ff" id="cancel-other-wrap" style="display:none;margin-top:10px">
+        <input type="text" id="cancel-other-text" placeholder="Укажите причину">
+      </div>
+    </div>
+    <div class="fs">
+      <div class="fsl">Кто отменяет</div>
+      <div class="ff"><input type="text" id="cancel-who" placeholder="Фамилия И.О." autocomplete="name"></div>
+    </div>
+  </div>
+  <div class="sf">
+    <button class="bok" id="cancel-ok" style="background:var(--red)">Отменить запись</button>
+    <button class="btn-more" id="cancel-back" style="width:100%;margin-top:8px">Назад</button>
+  </div>
+</div>
+</div>
+<div class="sov" id="sov"><div class="spin"></div><div class="stxt" id="stxt">Отправляю...</div></div>
+<div class="toast" id="toast"></div>
+<script>
+var WEBAPP_URL='https://script.google.com/macros/s/AKfycbzqtvvNv4s6AY5A1_C6WPUjE2joF9IAcGpxZG8Prqjpax0IBCURABXLxonLy9M95XZW4w/exec';
+var VEHICLE={gosnom:'У 442 МЕ 90',type:'АЛ-30 (131)',psh:'75 ПСЧ',fuel:'АИ-92',sheet:'АЛ 30',isCar:false,normKm:0.25,normXx:0.15,normPump:0.25,initSpido:0,initFuel:0.0};
+var TAB=String.fromCharCode(9), NL=String.fromCharCode(10);
+var queue=[], sent=[], selP=null, selPCls=null;
+var curSpidoStart=VEHICLE.initSpido, curBakStart=VEHICLE.initFuel;
+
+document.getElementById('vn').textContent=VEHICLE.gosnom;
+document.getElementById('vs').textContent=VEHICLE.type+' · '+VEHICLE.psh+' · '+VEHICLE.fuel;
+document.getElementById('shsub').textContent=VEHICLE.gosnom+' · Путевой лист · Приказ МЧС №737';
+
+if(VEHICLE.isCar){
+  document.getElementById('pump-sec').classList.add('car-hidden');
+  document.getElementById('r-agr-box').classList.add('car-hidden');
+  document.getElementById('r-noagr-box').classList.add('car-hidden');
+}
+
+var sQ=localStorage.getItem('q_'+VEHICLE.sheet), sS=localStorage.getItem('s_'+VEHICLE.sheet);
+if(sQ){try{queue=JSON.parse(sQ);}catch(e){}}
+if(sS){try{sent=JSON.parse(sS);}catch(e){}}
+
+function isWinterMonth(dateStr){
+  // dateStr = YYYY-MM-DD; зима ноябрь-март
+  var m=parseInt(dateStr.split('-')[1])||0;
+  return (m>=11||m<=3);
+}
+function updateCarry(){
+  // Фильтруем: берём только активные (не отменённые)
+  var active=sent.filter(function(e){return !e.cancelled;}).concat(queue);
+  if(active.length>0){
+    var last=active[active.length-1];
+    curSpidoStart=last.spidoEnd!=null?last.spidoEnd:VEHICLE.initSpido;
+    curBakStart=last.bakEnd!=null?last.bakEnd:VEHICLE.initFuel;
+  }else{
+    curSpidoStart=VEHICLE.initSpido;
+    curBakStart=VEHICLE.initFuel;
+  }
+}
+function checkOnline(){
+  var el=document.getElementById('cst');
+  if(!WEBAPP_URL||WEBAPP_URL==='__WEBAPP'+'_URL__'){el.textContent='⚠ не настроен';el.className='hdr-st off';return;}
+  el.textContent='● онлайн';el.className='hdr-st on';
+  // Реальную доступность проверяем через загрузку журнала (JSONP)
+}
+function swTab(t){
+  document.getElementById('tq').className='tab'+(t==='q'?' act':'');
+  document.getElementById('tl').className='tab'+(t==='l'?' act':'');
+  document.getElementById('pq').style.display=t==='q'?'':'none';
+  document.getElementById('pl').style.display=t==='l'?'':'none';
+}
+function selChip(el){
+  var all=document.querySelectorAll('.chip');
+  for(var i=0;i<all.length;i++){all[i].className='chip';}
+  el.className='chip sel'+(el.dataset.c?' '+el.dataset.c:'');
+  selP=el.dataset.v; selPCls=el.dataset.c||null;
+}
+function recalc(){
+  var km=parseFloat(document.getElementById('fkm').value)||0;
+  var nAgr=parseFloat(document.getElementById('fnagr').value)||0;
+  var nNo=parseFloat(document.getElementById('fnno').value)||0;
+  var fuel=parseFloat(document.getElementById('ffuel').value)||0;
+  var dateStr=document.getElementById('fdate').value||'';
+  var winterK=(dateStr&&isWinterMonth(dateStr))?1.1:1;
+  // Спидометр конец (пробег НЕ округляем)
+  var spidoEnd=curSpidoStart+km;
+  document.getElementById('spido-end').textContent=spidoEnd.toLocaleString('ru-RU')+' км';
+  // Расход по нормам приказа 737 — РАЗБИВКА
+  var rProbeg=Math.round(km*VEHICLE.normKm*winterK*100)/100;
+  var rAgr=Math.round(nAgr*VEHICLE.normPump*100)/100;
+  var rNoAgr=Math.round(nNo*VEHICLE.normXx*100)/100;
+  var rashod=Math.round((rProbeg+rAgr+rNoAgr)*100)/100;
+  document.getElementById('r-probeg').textContent=rProbeg+' л'+(winterK>1?' (зима)':'');
+  document.getElementById('r-agr').textContent=rAgr+' л';
+  document.getElementById('r-noagr').textContent=rNoAgr+' л';
+  document.getElementById('rashod').textContent=rashod+' л';
+  // Остатки
+  document.getElementById('bak-start').textContent=curBakStart.toFixed(2)+' л';
+  var bakEnd=Math.round((curBakStart+fuel-rashod)*100)/100;
+  document.getElementById('bak-end').textContent=bakEnd.toFixed(2)+' л';
+  return {km:km,nAgr:nAgr,nNo:nNo,fuel:fuel,spidoEnd:spidoEnd,
+          rProbeg:rProbeg,rAgr:rAgr,rNoAgr:rNoAgr,rashod:rashod,bakEnd:bakEnd};
+}
+function openSheet(){
+  updateCarry();
+  document.getElementById('cv').textContent=curSpidoStart.toLocaleString('ru-RU');
+  document.getElementById('carry').style.display='block';
+  document.getElementById('fkm').value='';
+  document.getElementById('fnagr').value='';
+  document.getElementById('fnno').value='';
+  document.getElementById('ffuel').value='';
+  // дата по умолчанию — сегодня (но водитель может изменить)
+  var t=new Date();
+  document.getElementById('fdate').value=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+  recalc();
+  document.getElementById('ov').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeSheet(){
+  document.getElementById('ov').classList.remove('open');
+  document.body.style.overflow='';
+  selP=null;selPCls=null;
+  var all=document.querySelectorAll('.chip');
+  for(var i=0;i<all.length;i++){all[i].className='chip';}
+  document.getElementById('froute').value='';
+  document.getElementById('ftout').value='';
+  document.getElementById('ftin').value='';
+  document.getElementById('fdrv').value='';
+}
+function addToQueue(){
+  var dateStr=document.getElementById('fdate').value;
+  if(!dateStr){toast('Укажите дату выезда','err');return;}
+  if(!selP){toast('Выберите цель выезда','err');return;}
+  var tOut=document.getElementById('ftout').value;
+  var tIn=document.getElementById('ftin').value;
+  if(!tOut){toast('Укажите время убытия','err');return;}
+  if(!tIn){toast('Укажите время прибытия','err');return;}
+  var c=recalc();
+  var drv=document.getElementById('fdrv').value.trim();
+  if(!drv){toast('Укажите ФИО водителя','err');return;}
+  // Пробег может быть 0 (ЕТО без выезда, занятия на территории)
+  // dateStr YYYY-MM-DD → DD.MM.YYYY
+  var dp=dateStr.split('-');
+  var dateRu=dp[2]+'.'+dp[1]+'.'+dp[0];
+  var entry={
+    id:Date.now(),
+    date:dateRu, dateISO:new Date(dateStr).toISOString(),
+    vehicle:VEHICLE.sheet, gosnom:VEHICLE.gosnom,
+    purpose:selP, purposeCls:selPCls,
+    route:document.getElementById('froute').value.trim(),
+    tOut:document.getElementById('ftout').value,
+    tIn:document.getElementById('ftin').value,
+    spidoOut:curSpidoStart, spidoIn:c.spidoEnd, spidoEnd:c.spidoEnd, km:c.km,
+    narAgr:c.nAgr, narNoAgr:c.nNo,
+    fuel:c.fuel, rashod:c.rashod,
+    rProbeg:c.rProbeg, rAgr:c.rAgr, rNoAgr:c.rNoAgr,
+    bakStart:curBakStart, bakEnd:c.bakEnd,
+    driver:drv
+  };
+  queue.push(entry);
+  localStorage.setItem('q_'+VEHICLE.sheet,JSON.stringify(queue));
+  closeSheet();
+  updateCarry();
+  renderQueue(); updateStrip();
+  toast('Выезд добавлен');
+}
+function sendAll(){
+  if(!queue.length)return;
+  var ok=WEBAPP_URL&&WEBAPP_URL!=='__WEBAPP'+'_URL__';
+  if(!ok){
+    var tsv=queue.map(function(e){return [e.date,e.vehicle,e.purpose,e.route,e.tOut||'',e.tIn||'',e.spidoOut,e.spidoIn,e.km,e.narAgr,e.narNoAgr,e.rProbeg,e.rAgr,e.rNoAgr,e.fuel,e.rashod,e.bakStart,e.bakEnd,e.driver].join(TAB);}).join(NL);
+    navigator.clipboard.writeText(tsv).then(function(){moveSent();toast('Скопировано '+queue.length+' строк');}).catch(function(){toast('Не удалось скопировать','err');});
+    return;
+  }
+  showSend(true,'Отправляю '+queue.length+' выезд(ов)...');
+  document.getElementById('bs').disabled=true;
+  // Отправляем через GET с CORS (Google Apps Script поддерживает CORS на GET)
+  var payload = JSON.stringify({vehicle:VEHICLE.sheet, entries:queue});
+  var sendUrl = WEBAPP_URL + '?action=addEntries&data=' + encodeURIComponent(payload);
+
+  // Если URL слишком длинный (>7000) — разбиваем на части
+  if(sendUrl.length > 7000){
+    sendBatched(queue.slice());
+    return;
+  }
+
+  fetch(sendUrl, {method:'GET', mode:'cors'})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d && d.status==='ok'){
+        moveSent();
+        showSend(false);
+        toast('Отправлено ' + (d.added||queue.length) + ' выездов ✓');
+        setTimeout(function(){loadJournalFromSheets();}, 1500);
+      } else {
+        showSend(false);
+        document.getElementById('bs').disabled=false;
+        toast('Ошибка: '+(d?d.message:'неизвестная'),'err');
+      }
+    })
+    .catch(function(err){
+      showSend(false);
+      document.getElementById('bs').disabled=false;
+      toast('Нет связи с таблицей','err');
+    });
+}
+
+// Отправка по частям если данных много
+function sendBatched(entries){
+  if(entries.length===0){
+    moveSent();showSend(false);
+    toast('Отправлено ✓');
+    setTimeout(function(){loadJournalFromSheets();},1500);
+    return;
+  }
+  // Берём по 3 записи за раз
+  var batch = entries.splice(0, 3);
+  var payload = JSON.stringify({vehicle:VEHICLE.sheet, entries:batch});
+  var sendUrl = WEBAPP_URL + '?action=addEntries&data=' + encodeURIComponent(payload);
+  fetch(sendUrl, {method:'GET', mode:'cors'})
+    .then(function(r){ return r.json(); })
+    .then(function(){
+      showSend(true, 'Отправлено '+(queue.length-entries.length)+'/'+queue.length+'...');
+      sendBatched(entries);
+    })
+    .catch(function(){
+      showSend(false);document.getElementById('bs').disabled=false;
+      toast('Ошибка при отправке партии','err');
+    });
+}
+
+function moveSent(){
+  for(var i=0;i<queue.length;i++){queue[i].sent=true;sent.push(queue[i]);}
+  queue=[];
+  localStorage.setItem('q_'+VEHICLE.sheet,JSON.stringify(queue));
+  localStorage.setItem('s_'+VEHICLE.sheet,JSON.stringify(sent));
+  updateCarry(); renderQueue(); renderLog(); updateStrip();
+}
+function deleteFromQueue(id){
+  queue=queue.filter(function(e){return e.id!==id;});
+  localStorage.setItem('q_'+VEHICLE.sheet,JSON.stringify(queue));
+  updateCarry(); renderQueue(); updateStrip();
+}
+function renderQueue(){
+  var ql=document.getElementById('ql'),qe=document.getElementById('qe'),qa=document.getElementById('qa'),sh=document.getElementById('sh');
+  ql.innerHTML='';
+  if(!queue.length){qe.style.display='block';qa.style.display='none';sh.style.display='none';return;}
+  qe.style.display='none';qa.style.display='grid';sh.style.display='block';
+  var ok=WEBAPP_URL&&WEBAPP_URL!=='__WEBAPP'+'_URL__';
+  sh.textContent=queue.length+' выезд(а) — '+(ok?'готовы к отправке':'будут скопированы');
+  for(var i=0;i<queue.length;i++){
+    var e=queue[i];
+    var cls={'ЕТО':'eto','занятия':'zan','ложный':'lozh'}[e.purpose]||'';
+    var div=document.createElement('div');div.className='qi';
+    div.innerHTML='<div class="qnum">'+(i+1)+'</div><div class="qb '+cls+'">'+e.purpose.toUpperCase()+'</div>'+
+      '<div class="qinfo"><div style="font-size:13px;font-weight:500">'+e.date+' · '+e.km+' км</div><div class="qroute">'+(e.route||'—')+'</div></div>'+
+      '<div class="qmeta">'+e.rashod+'л</div>'+
+      '<button class="qdel" data-id="'+e.id+'">✕</button>';
+    (function(id){
+      var b=div.querySelector('.qdel');
+      b.addEventListener('touchend',function(ev){ev.preventDefault();deleteFromQueue(id);});
+      b.addEventListener('click',function(){deleteFromQueue(id);});
+    })(e.id);
+    ql.appendChild(div);
+  }
+}
+function renderLog(){
+  var lw=document.getElementById('lw'),le=document.getElementById('le');
+  if(!sent.length){le.style.display='block';lw.innerHTML='';lw.appendChild(le);return;}
+  le.style.display='none';lw.innerHTML='';
+  var byM={};
+  for(var i=0;i<sent.length;i++){
+    var e=sent[i];var d=new Date(e.dateISO);
+    var k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    var lbl=d.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+    if(!byM[k])byM[k]={lbl:lbl,rows:[]};
+    byM[k].rows.push(e);
+  }
+  var keys=Object.keys(byM).sort().reverse();
+  for(var j=0;j<keys.length;j++){
+    var m=byM[keys[j]];
+    var mEl=document.createElement('div');mEl.className='lmonth';mEl.textContent=m.lbl.toUpperCase();lw.appendChild(mEl);
+    var rows=m.rows.slice().reverse();
+    for(var r=0;r<rows.length;r++){lw.appendChild(makePLCard(rows[r]));}
+  }
+}
+function makePLCard(e){
+  var d=new Date(e.dateISO);var day=d.getDate();
+  var wd=d.toLocaleDateString('ru-RU',{weekday:'short'});
+  var cls={'ЕТО':'eto','занятия':'zan','ложный':'lozh'}[e.purpose]||'';
+  var plNum='№'+(e.id%10000);
+  var workHtml=VEHICLE.isCar?'':
+    '<div class="pl-field"><div class="lbl">НАРАБ. НАСОС</div><div class="val acc">'+(e.narAgr||0)+' мин → '+(e.rAgr||0)+' л</div></div>'+
+    '<div class="pl-field"><div class="lbl">НАРАБ. ХОЛ.ХОД</div><div class="val acc">'+(e.narNoAgr||0)+' мин → '+(e.rNoAgr||0)+' л</div></div>';
+  var card=document.createElement('div');card.className='pl-card';
+  card.innerHTML=
+    '<div class="pl-head">'+
+      '<div class="pl-day"><div class="pl-daynum">'+day+'</div><div class="pl-daywd">'+wd+'</div></div>'+
+      '<div class="pl-info"><div class="pl-num">'+plNum+' · '+e.date+(e.cancelled?' · <span class="cancelled-badge">ОТМЕНЕНА</span>':'')+'</div><div class="pl-route">'+(e.route||'маршрут не указан')+'</div></div>'+
+      '<div class="pl-right"><div class="pl-km">'+e.km+'</div><div class="pl-kmunit">км</div></div>'+
+    '</div>'+
+    '<div class="pl-body" id="plb_'+e.id+'">'+
+      '<div class="pl-section"><div class="pl-sec-title">Цель</div><div class="pl-badge '+cls+'"><div class="pbtxt">'+e.purpose.toUpperCase()+'</div></div></div>'+
+      '<div class="pl-section"><div class="pl-sec-title">Время</div><div class="pl-grid">'+
+        '<div class="pl-field"><div class="lbl">ВЫЕЗД</div><div class="val">'+(e.tOut||'—')+'</div></div>'+
+        '<div class="pl-field"><div class="lbl">ВОЗВРАТ В ППД</div><div class="val">'+(e.tIn||'—')+'</div></div></div></div>'+
+      '<div class="pl-section"><div class="pl-sec-title">Спидометр</div>'+
+        '<div class="pl-spido">'+e.spidoOut.toLocaleString('ru-RU')+'<span class="pl-arrow">→</span>'+e.spidoIn.toLocaleString('ru-RU')+'</div>'+
+        '<div style="font-size:12px;color:var(--sub);margin-top:4px">Пробег: <b style="color:var(--gold)">'+e.km+' км</b></div></div>'+
+      '<div class="pl-section"><div class="pl-sec-title">Топливо (помощь для путевого)</div><div class="pl-grid">'+
+        workHtml+
+        '<div class="pl-field"><div class="lbl">РАСХОД ПО ПРОБЕГУ</div><div class="val acc">'+(e.rProbeg||0)+' л</div></div>'+
+        '<div class="pl-field"><div class="lbl">ИТОГО РАСХОД</div><div class="val acc">'+(e.rashod||0)+' л</div></div>'+
+        '<div class="pl-field"><div class="lbl">ЗАПРАВЛЕНО</div><div class="val">'+(e.fuel>0?e.fuel+' л':'—')+'</div></div>'+
+        '<div class="pl-field"><div class="lbl">ОСТАТОК НАЧАЛО</div><div class="val">'+(e.bakStart!=null?e.bakStart.toFixed(2)+' л':'—')+'</div></div>'+
+        '<div class="pl-field"><div class="lbl">ОСТАТОК КОНЕЦ</div><div class="val acc">'+(e.bakEnd!=null?e.bakEnd.toFixed(2)+' л':'—')+'</div></div>'+
+        '<div class="pl-field"><div class="lbl">ВОДИТЕЛЬ</div><div class="val" style="font-size:11px">'+e.driver+'</div></div></div></div>'+
+      (e.cancelled?'<div class="pl-section"><div class="cancelled-badge">✕ ОТМЕНЕНА: '+e.cancelReason+' ('+e.cancelBy+')</div></div>':
+        '<div class="pl-section" style="text-align:center"><button class="btn-more" style="width:100%;color:var(--red);border-color:rgba(232,64,64,.3)" data-cancel="'+e.id+'">Отменить запись</button></div>')+
+    '</div>';
+  (function(id){
+    var h=card.querySelector('.pl-head');
+    h.addEventListener('touchend',function(ev){ev.preventDefault();togglePL(id);});
+    h.addEventListener('click',function(){togglePL(id);});
+  })(e.id);
+  return card;
+}
+function togglePL(id){var b=document.getElementById('plb_'+id);if(b)b.classList.toggle('open');}
+function updateStrip(){
+  // Считаем только активные (не отменённые)
+  var all=sent.filter(function(e){return !e.cancelled;}).concat(queue);
+  document.getElementById('st').textContent=all.length;
+  var km=0,rashod=0;
+  for(var i=0;i<all.length;i++){km+=all[i].km||0;rashod+=all[i].rashod||0;}
+  document.getElementById('sk').textContent=km.toLocaleString('ru-RU');
+  document.getElementById('sr').textContent=rashod.toFixed(1);
+  updateCarry();
+  document.getElementById('sb').textContent=curBakStart.toFixed(1);
+}
+function showSend(s,t){document.getElementById('sov').classList.toggle('open',s);if(t)document.getElementById('stxt').textContent=t;}
+function toast(m,t){var el=document.getElementById('toast');el.textContent=m;el.className='toast'+(t?' '+t:'');el.classList.add('show');setTimeout(function(){el.classList.remove('show');},3000);}
+
+function tap(el,fn){
+  if(!el)return;
+  var touched=false;
+  el.addEventListener('touchstart',function(){touched=true;},{passive:true});
+  el.addEventListener('touchend',function(e){if(touched){e.preventDefault();fn();touched=false;}});
+  el.addEventListener('click',function(){if(!touched)fn();touched=false;});
+}
+tap(document.getElementById('fab'),openSheet);
+tap(document.getElementById('bm'),openSheet);
+tap(document.getElementById('bs'),sendAll);
+tap(document.getElementById('bok'),addToQueue);
+var cpsEl=document.getElementById('cps');
+cpsEl.addEventListener('touchend',function(e){var c=e.target.closest('.chip');if(!c)return;e.preventDefault();selChip(c);});
+cpsEl.addEventListener('click',function(e){var c=e.target.closest('.chip');if(!c)return;selChip(c);});
+var ovEl=document.getElementById('ov');
+ovEl.addEventListener('touchend',function(e){if(e.target===this){e.preventDefault();closeSheet();}});
+ovEl.addEventListener('click',function(e){if(e.target===this)closeSheet();});
+
+
+// ── ОТМЕНА ЗАПИСИ ──
+var cancelTargetId = null;
+var cancelReason = null;
+
+function openCancelModal(id){
+  cancelTargetId = id;
+  cancelReason = null;
+  var chips = document.querySelectorAll('#cancel-chips .chip');
+  for(var i=0;i<chips.length;i++) chips[i].className='chip';
+  document.getElementById('cancel-other-wrap').style.display='none';
+  document.getElementById('cancel-other-text').value='';
+  document.getElementById('cancel-who').value='';
+  document.getElementById('cancel-ov').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeCancelModal(){
+  document.getElementById('cancel-ov').classList.remove('open');
+  document.body.style.overflow='';
+  cancelTargetId=null; cancelReason=null;
+}
+function doCancelEntry(){
+  if(!cancelReason){toast('Выберите причину отмены','err');return;}
+  var who=document.getElementById('cancel-who').value.trim();
+  if(!who){toast('Укажите кто отменяет','err');return;}
+  var reason=cancelReason;
+  if(reason==='other'){
+    reason=document.getElementById('cancel-other-text').value.trim();
+    if(!reason){toast('Напишите причину','err');return;}
+  }
+  // Находим запись в sent и помечаем как отменённую
+  for(var i=0;i<sent.length;i++){
+    if(sent[i].id===cancelTargetId){
+      sent[i].cancelled=true;
+      sent[i].cancelReason=reason;
+      sent[i].cancelBy=who;
+      sent[i].cancelDate=new Date().toLocaleDateString('ru-RU');
+      break;
+    }
+  }
+  localStorage.setItem('s_'+VEHICLE.sheet, JSON.stringify(sent));
+  closeCancelModal();
+  updateCarry();
+  renderLog();
+  updateStrip();
+  toast('Запись отменена');
+}
+
+// Привязка кнопок модалки
+tap(document.getElementById('cancel-ok'), doCancelEntry);
+tap(document.getElementById('cancel-back'), closeCancelModal);
+
+// Привязка чипов причины
+var ccEl=document.getElementById('cancel-chips');
+ccEl.addEventListener('touchend',function(e){
+  var c=e.target.closest('.chip');if(!c)return;e.preventDefault();
+  var chips=ccEl.querySelectorAll('.chip');for(var i=0;i<chips.length;i++)chips[i].className='chip';
+  c.className='chip sel';
+  cancelReason=c.dataset.r;
+  document.getElementById('cancel-other-wrap').style.display=(cancelReason==='other')?'block':'none';
+});
+ccEl.addEventListener('click',function(e){
+  var c=e.target.closest('.chip');if(!c)return;
+  var chips=ccEl.querySelectorAll('.chip');for(var i=0;i<chips.length;i++)chips[i].className='chip';
+  c.className='chip sel';
+  cancelReason=c.dataset.r;
+  document.getElementById('cancel-other-wrap').style.display=(cancelReason==='other')?'block':'none';
+});
+
+// Закрытие модалки
+document.getElementById('cancel-ov').addEventListener('touchend',function(e){if(e.target===this){e.preventDefault();closeCancelModal();}});
+document.getElementById('cancel-ov').addEventListener('click',function(e){if(e.target===this)closeCancelModal();});
+
+// Делегирование кнопок "Отменить запись" внутри журнала
+document.getElementById('lw').addEventListener('click',function(e){
+  var btn=e.target.closest('[data-cancel]');
+  if(btn) openCancelModal(parseInt(btn.dataset.cancel));
+});
+document.getElementById('lw').addEventListener('touchend',function(e){
+  var btn=e.target.closest('[data-cancel]');
+  if(btn){e.preventDefault();openCancelModal(parseInt(btn.dataset.cancel));}
+});
+
+
+// ── ОБЩИЙ ЖУРНАЛ (синхронизация с Google Sheets) ──────────────────
+
+// Обновляем начальные показатели из последней записи в таблице
+function updateCarryFromSheets(lastEntry){
+  if(!lastEntry) return;
+  if(lastEntry.spidoIn && lastEntry.spidoIn > curSpidoStart){
+    curSpidoStart = lastEntry.spidoIn;
+  }
+  if(lastEntry.bakEnd !== undefined && lastEntry.bakEnd !== null){
+    curBakStart = lastEntry.bakEnd;
+  }
+  updateStrip();
+}
+
+// Загружаем журнал из Google Sheets
+function loadJournalFromSheets(){
+  if(!WEBAPP_URL || WEBAPP_URL.indexOf('ВСТАВИТЬ')>=0) return;
+  var el = document.getElementById('sync-status');
+  if(el) el.textContent = '⟳ синхронизация...';
+
+  // JSONP обход CORS: создаём script с callback
+  var cbName = 'gsmcb_' + Date.now();
+  window[cbName] = function(data){
+    try{
+      if(data && data.entries){
+        var existingIds = {};
+        for(var i=0;i<sent.length;i++) existingIds[String(sent[i].id)]=true;
+        var newFromServer = data.entries.filter(function(e){ return !existingIds[String(e.id)]; });
+        if(newFromServer.length > 0){
+          for(var j=0;j<newFromServer.length;j++) sent.push(newFromServer[j]);
+          localStorage.setItem('s_'+VEHICLE.sheet, JSON.stringify(sent));
+          updateCarry(); renderLog(); updateStrip();
+          if(el) el.textContent = '✓ обновлено (+'+newFromServer.length+')';
+        } else {
+          if(el) el.textContent = '✓ актуально';
+        }
+        if(data.lastEntry) updateCarryFromSheets(data.lastEntry);
+      }
+    } catch(err){ if(el) el.textContent='✗ ошибка'; }
+    // Чистим
+    delete window[cbName];
+    if(scr.parentNode) scr.parentNode.removeChild(scr);
+  };
+
+  var scr = document.createElement('script');
+  scr.src = WEBAPP_URL+'?vehicle='+encodeURIComponent(VEHICLE.sheet)+'&action=getEntries&callback='+cbName;
+  scr.onerror = function(){
+    if(el) el.textContent='✗ нет связи';
+    delete window[cbName];
+    if(scr.parentNode) scr.parentNode.removeChild(scr);
+  };
+  document.body.appendChild(scr);
+
+  // Таймаут на случай зависания
+  setTimeout(function(){
+    if(window[cbName]){ if(el) el.textContent='✗ таймаут'; delete window[cbName]; }
+  }, 10000);
+}
+
+// Загружаем журнал при старте
+loadJournalFromSheets();
+checkOnline();renderQueue();renderLog();updateStrip();
+</script>
+</body>
+</html>

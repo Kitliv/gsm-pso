@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Путевые листы · 1 ПСО МЧС</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+:root {
+  --fire:#E8350F; --coal:#0F0F0F; --surf:#1A1A1A; --card:#212121;
+  --line:#2E2E2E; --text:#F0F0F0; --sub:#888; --gold:#E8A020;
+  --green:#22A855; --blue:#3D8EE8;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:'IBM Plex Sans',sans-serif; background:var(--coal); color:var(--text); }
+
+/* ── HEADER ── */
+.hdr {
+  background:var(--surf); border-bottom:3px solid var(--fire);
+  padding:24px 32px; display:flex; align-items:center; gap:18px;
+}
+.hdr-icon { font-size:40px; }
+.hdr-title { font-family:'Bebas Neue',sans-serif; font-size:38px; letter-spacing:2px; line-height:1; }
+.hdr-sub { font-size:13px; color:var(--sub); margin-top:4px; }
+.hdr-badge {
+  margin-left:auto; background:var(--fire); color:#fff;
+  font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:600;
+  letter-spacing:1.5px; padding:5px 12px; border-radius:5px; white-space:nowrap;
+}
+
+/* ── SETUP BANNER ── */
+.setup {
+  background:rgba(61,142,232,.08); border:1px solid rgba(61,142,232,.25);
+  margin:20px 24px; border-radius:12px; padding:16px 20px;
+  font-size:13px; color:#7CB8EF; line-height:1.7;
+}
+.setup strong { color:var(--blue); }
+.setup-url {
+  font-family:'IBM Plex Mono',monospace; font-size:12px;
+  background:rgba(0,0,0,.3); padding:8px 12px; border-radius:7px;
+  margin-top:8px; word-break:break-all; color:var(--gold);
+  display:flex; align-items:center; gap:10px;
+}
+.copy-btn {
+  background:var(--blue); border:none; color:#fff; padding:4px 10px;
+  border-radius:5px; font-size:11px; cursor:pointer; white-space:nowrap;
+  flex-shrink:0;
+}
+
+/* ── PART HEADERS ── */
+.part {
+  padding:16px 24px 8px;
+  font-family:'IBM Plex Mono',monospace; font-size:11px;
+  letter-spacing:3px; color:var(--fire); text-transform:uppercase;
+  border-bottom:1px solid var(--line); margin:0 24px;
+}
+
+/* ── GRID ── */
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));
+  gap:14px; padding:16px 24px;
+}
+
+/* ── VEHICLE CARD ── */
+.vcard {
+  background:var(--card); border:1px solid var(--line);
+  border-radius:14px; overflow:hidden;
+  display:flex; flex-direction:column;
+  transition:border-color .15s;
+}
+.vcard:hover { border-color:var(--fire); }
+.vcard.car { border-left:3px solid var(--blue); }
+.vcard.fire29 { border-left:3px solid var(--fire); }
+.vcard.fire75 { border-left:3px solid var(--gold); }
+
+.vcard-top { padding:14px 14px 10px; }
+.vcard-gosnom {
+  font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:1.5px;
+  line-height:1; color:var(--text);
+}
+.vcard-type { font-size:11px; color:var(--sub); margin-top:3px; line-height:1.4; }
+.vcard-psh {
+  display:inline-block; font-size:10px; font-weight:600;
+  padding:2px 7px; border-radius:10px; margin-top:6px;
+  background:rgba(232,53,15,.12); color:var(--fire);
+}
+.vcard-psh.p75 { background:rgba(232,160,32,.12); color:var(--gold); }
+.vcard-psh.car { background:rgba(61,142,232,.12); color:var(--blue); }
+
+/* QR area */
+.vcard-qr {
+  background:#fff; margin:0 14px 14px;
+  border-radius:10px; padding:10px;
+  display:flex; align-items:center; justify-content:center;
+  min-height:130px; position:relative;
+}
+.qr-img { width:110px; height:110px; }
+.qr-placeholder {
+  text-align:center; color:#999; font-size:11px; line-height:1.5;
+}
+.qr-placeholder .qr-ico { font-size:36px; display:block; margin-bottom:6px; opacity:.3; }
+
+.vcard-link {
+  padding:0 14px 12px;
+  font-family:'IBM Plex Mono',monospace; font-size:10px;
+  color:var(--sub); word-break:break-all; line-height:1.5;
+  text-decoration:none;
+}
+.vcard-link:hover { color:var(--fire); }
+
+.vcard-open {
+  margin:0 14px 12px; background:var(--fire); border:none;
+  border-radius:8px; color:#fff; font-size:13px; font-weight:600;
+  padding:10px; cursor:pointer; width:calc(100% - 28px);
+  text-decoration:none; display:block; text-align:center;
+}
+.vcard-open:hover { background:#C02A08; }
+.vcard.car .vcard-open { background:var(--blue); }
+.vcard.car .vcard-open:hover { background:#2A6AC0; }
+
+/* ── PRINT SHEET (A4) ── */
+.print-section {
+  margin:24px; background:var(--surf); border:1px solid var(--line);
+  border-radius:14px; padding:20px;
+}
+.print-title {
+  font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:1px;
+  color:var(--fire); margin-bottom:14px;
+}
+.print-grid {
+  display:grid; grid-template-columns:repeat(2, 1fr); gap:12px;
+}
+.sticker {
+  border:2px solid var(--line); border-radius:10px; padding:12px;
+  display:flex; gap:12px; align-items:center;
+}
+.sticker.fire29 { border-color:rgba(232,53,15,.4); }
+.sticker.fire75 { border-color:rgba(232,160,32,.4); }
+.sticker.car    { border-color:rgba(61,142,232,.4); }
+.sticker-qr { width:80px; height:80px; background:#fff; border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.sticker-qr img { width:70px; height:70px; }
+.sticker-qr .sq-ph { font-size:10px; color:#bbb; text-align:center; }
+.sticker-info {}
+.sticker-gosnom { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:1px; }
+.sticker-type { font-size:10px; color:var(--sub); line-height:1.4; margin-top:2px; }
+.sticker-scan { font-size:10px; color:var(--sub); margin-top:6px; font-style:italic; }
+
+/* ── FOOTER ── */
+.footer {
+  text-align:center; padding:32px; color:var(--sub); font-size:12px; line-height:1.8;
+}
+
+/* ── PRINT STYLES ── */
+@media print {
+  body { background:#fff; color:#000; }
+  .hdr, .setup, .grid, .print-title, .footer { display:none !important; }
+  .print-section { background:#fff; border:none; margin:0; padding:10px; box-shadow:none; }
+  .sticker { border-color:#ccc; page-break-inside:avoid; }
+  .sticker-gosnom { color:#000; }
+  .sticker-type, .sticker-scan { color:#666; }
+  .print-grid { gap:8px; }
+  @page { margin:10mm; size:A4; }
+}
+
+@media (max-width:600px) {
+  .hdr { padding:16px; }
+  .hdr-title { font-size:26px; }
+  .grid { grid-template-columns:1fr 1fr; gap:10px; padding:12px; }
+  .part { margin:0 12px; padding:12px 0 6px; }
+  .setup { margin:12px; }
+  .print-section { margin:12px; }
+  .print-grid { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-icon">🚒</div>
+  <div>
+    <div class="hdr-title">Путевые листы · 1 ПСО</div>
+    <div class="hdr-sub">ФПС ГПС ГУ МЧС России по МО · Приказ №737 от 01.10.2020</div>
+  </div>
+  <div class="hdr-badge">29 ПСЧ + 75 ПСЧ</div>
+</div>
+
+<!-- SETUP BANNER -->
+<div class="setup" id="setup-banner">
+  <strong>⚙️ Первый запуск:</strong> вставь базовый URL после публикации на GitHub Pages.<br>
+  Например: <code>https://kitliv.github.io/gsm-pso</code>
+  <div class="setup-url">
+    <span id="base-url-display">https://ВАШ-ЛОГИН.github.io/gsm-pso</span>
+    <button class="copy-btn" onclick="promptBaseUrl()">Изменить</button>
+  </div>
+</div>
+
+<!-- 29 ПСЧ -->
+<div class="part">29 ПСЧ — пожарные автомобили</div>
+<div class="grid" id="grid-29"></div>
+
+<!-- 75 ПСЧ -->
+<div class="part">75 ПСЧ — пожарные автомобили</div>
+<div class="grid" id="grid-75"></div>
+
+<!-- Легковые -->
+<div class="part">Легковые автомобили</div>
+<div class="grid" id="grid-car"></div>
+
+<!-- PRINT STICKERS -->
+<div class="print-section">
+  <div class="print-title">🖨 Наклейки для кабин — распечатать и ламинировать</div>
+  <div style="font-size:12px;color:var(--sub);margin-bottom:12px">Ctrl+P → только эта страница → формат A4. QR-коды появятся автоматически после ввода URL.</div>
+  <div class="print-grid" id="stickers"></div>
+</div>
+
+<div class="footer">
+  1 ПСО ФПС ГПС ГУ МЧС России по МО · Приказ МЧС России от 01.10.2020 №737<br>
+  <span id="footer-url" style="color:var(--gold);font-family:monospace;font-size:11px"></span>
+</div>
+
+<!-- QR LIB -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script>
+// ── ДАННЫЕ ВСЕХ МАШИН ──
+var VEHICLES = [
+  // { sheet, gosnom, type, psh, fuel, cls, file }
+  {sheet:'412',    gosnom:'А 412 ОТ 790', type:'АЦ 3,2-40/4 (43265)', psh:'29 ПСЧ', fuel:'ДТ',    cls:'fire29', file:'putevoy_412_412.html'},
+  {sheet:'298',    gosnom:'К 298 ВМ 790', type:'АЦ 6,0-40 (5557)',    psh:'29 ПСЧ', fuel:'ДТ',    cls:'fire29', file:'putevoy_298_298.html'},
+  {sheet:'074',    gosnom:'Н 074 АК 750', type:'АЦ 5,0-100 (43118)',  psh:'29 ПСЧ', fuel:'ДТ',    cls:'fire29', file:'putevoy_074_074.html'},
+  {sheet:'447',    gosnom:'Т 447 АС 190', type:'АР-2 (131)',           psh:'29 ПСЧ', fuel:'АИ-92', cls:'fire29', file:'putevoy_447_447.html'},
+  {sheet:'778',    gosnom:'М 778 УТ 190', type:'АЦ-2,0-40 (4308)',    psh:'29 ПСЧ', fuel:'ДТ',    cls:'fire29', file:'putevoy_778_778.html'},
+  {sheet:'943',    gosnom:'О 943 КС 190', type:'АЛ-50 (65115)',        psh:'29 ПСЧ', fuel:'ДТ',    cls:'fire29', file:'putevoy_943_943.html'},
+  {sheet:'АЦ 3,2', gosnom:'К 934 АУ 750', type:'АЦ 3,2-40/4 (43253)', psh:'75 ПСЧ', fuel:'ДТ',   cls:'fire75', file:'putevoy_AC32_934.html'},
+  {sheet:'АЦ 6.0', gosnom:'А 325 ОТ 790', type:'АЦ 6,0-40 (5557)',   psh:'75 ПСЧ', fuel:'ДТ',    cls:'fire75', file:'putevoy_AC60_325.html'},
+  {sheet:'АЦ 3.0', gosnom:'С 722 МО 50',  type:'АЦ 3,0 (43206)',      psh:'75 ПСЧ', fuel:'ДТ',   cls:'fire75', file:'putevoy_AC30_722.html'},
+  {sheet:'АШ-5',   gosnom:'С 624 МО 50',  type:'АШ-5 (27057)',         psh:'75 ПСЧ', fuel:'АИ-92',cls:'fire75', file:'putevoy_ASH5_624.html'},
+  {sheet:'АЛ 30',  gosnom:'У 442 МЕ 90',  type:'АЛ-30 (131)',          psh:'75 ПСЧ', fuel:'АИ-92',cls:'fire75', file:'putevoy_AL30_442.html'},
+  {sheet:'АКП 50', gosnom:'К 935 АУ 750', type:'АКП-50 (6540)',        psh:'75 ПСЧ', fuel:'ДТ',   cls:'fire75', file:'putevoy_AKP50_935.html'},
+  {sheet:'АСО', gosnom:'В 220 КХ 790', type:'Форд Транзит (АСО)', psh:'ГУ', fuel:'АИ-92', cls:'fire75', file:'putevoy_ASO_220.html'},
+
+  {sheet:'Дастер-314', gosnom:'В 314 ВК 790', type:'Рено Дастер',          psh:'29 ПСЧ', fuel:'АИ-95',cls:'car',    file:'putevoy_Daster_314.html'},
+  {sheet:'Нива-221',   gosnom:'В 221 УС 150', type:'Лада 4×4 (Нива)',      psh:'75 ПСЧ', fuel:'АИ-92',cls:'car',    file:'putevoy_Niva_221.html'},
+  {sheet:'Фокус-809', gosnom:'О 809 ТУ 750', type:'Форд Фокус', psh:'29 ПСЧ', fuel:'АИ-95', cls:'car', file:'putevoy_Fokus_809.html'},
+];
+
+// ── BASE URL ──
+var _raw = localStorage.getItem('base_url') || 'https://kitliv.github.io/gsm-pso';
+var BASE_URL = _raw.replace(/[\s\r\n]+/g,'').replace(/\/+$/,'').toLowerCase();
+// Сохраняем очищенный вариант обратно
+if(BASE_URL !== _raw) localStorage.setItem('base_url', BASE_URL);
+
+function promptBaseUrl() {
+  var url = prompt('Введи базовый URL GitHub Pages\n(например: https://ivanov-mchs.github.io/gsm-pso)', BASE_URL);
+  if (url) {
+    BASE_URL = url.replace(/[\s\r\n]+/g,'').replace(/\/+$/,'').toLowerCase();
+    localStorage.setItem('base_url', BASE_URL);
+    document.getElementById('base-url-display').textContent = BASE_URL;
+    document.getElementById('footer-url').textContent = BASE_URL;
+    renderAll();
+  }
+}
+
+// Восстанавливаем URL
+document.getElementById('base-url-display').textContent = BASE_URL;
+document.getElementById('footer-url').textContent = BASE_URL;
+
+// ── RENDER ──
+function renderAll() {
+  var g29  = document.getElementById('grid-29');
+  var g75  = document.getElementById('grid-75');
+  var gcar = document.getElementById('grid-car');
+  var stk  = document.getElementById('stickers');
+
+  g29.innerHTML = ''; g75.innerHTML = ''; gcar.innerHTML = ''; stk.innerHTML = '';
+
+  VEHICLES.forEach(function(v, idx) {
+    var cleanBase = BASE_URL.trim().replace(/\s+/g,'').replace(/\/+$/,'').toLowerCase();
+    var url = (cleanBase + '/' + v.file).replace(/\s+/g, '');
+    var isReal = BASE_URL.indexOf('ВАШ-ЛОГИН') === -1 && BASE_URL.indexOf('github.io') !== -1;
+
+    // Карточка
+    var card = document.createElement('div');
+    card.className = 'vcard ' + v.cls;
+
+    var pshCls = v.cls === 'fire75' ? 'p75' : (v.cls === 'car' ? 'car' : '');
+    var fuelColor = v.fuel === 'ДТ' ? 'var(--gold)' : (v.fuel === 'АИ-95' ? 'var(--blue)' : 'var(--green)');
+
+    card.innerHTML =
+      '<div class="vcard-top">' +
+        '<div class="vcard-gosnom">' + v.gosnom.split(' ')[1] + ' ' + v.gosnom.split(' ')[2] + '</div>' +
+        '<div class="vcard-type">' + v.type + '</div>' +
+        '<span class="vcard-psh ' + pshCls + '">' + v.psh + '</span>' +
+        ' <span style="font-size:10px;font-weight:600;color:' + fuelColor + '">' + v.fuel + '</span>' +
+      '</div>' +
+      '<div class="vcard-qr" id="qr_' + idx + '">' +
+        (isReal ? '' : '<div class="qr-placeholder"><span class="qr-ico">▣</span>QR появится<br>после ввода URL</div>') +
+      '</div>' +
+      '<a class="vcard-link" href="' + url + '" target="_blank">' + url + '</a>' +
+      '<a class="vcard-open" href="' + url + '" target="_blank">Открыть путевой лист</a>';
+
+    // Определяем контейнер
+    var container = v.cls === 'fire29' ? g29 : (v.cls === 'fire75' ? g75 : gcar);
+    container.appendChild(card);
+
+    // Генерируем QR если URL настроен
+    if (isReal) {
+      try {
+        new QRCode(document.getElementById('qr_' + idx), {
+          text: url,
+          width: 110, height: 110,
+          colorDark: '#000000', colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M,
+        });
+      } catch(e) {}
+    }
+
+    // Наклейка для печати
+    var sticker = document.createElement('div');
+    sticker.className = 'sticker ' + v.cls;
+    sticker.innerHTML =
+      '<div class="sticker-qr" id="sqr_' + idx + '">' +
+        (isReal ? '' : '<div class="sq-ph">QR здесь</div>') +
+      '</div>' +
+      '<div class="sticker-info">' +
+        '<div class="sticker-gosnom">' + v.gosnom + '</div>' +
+        '<div class="sticker-type">' + v.type + '<br>' + v.psh + ' · ' + v.fuel + '</div>' +
+        '<div class="sticker-scan">📱 Сканируй для путевого листа</div>' +
+      '</div>';
+    stk.appendChild(sticker);
+
+    if (isReal) {
+      try {
+        new QRCode(document.getElementById('sqr_' + idx), {
+          text: url,
+          width: 70, height: 70,
+          colorDark: '#000000', colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M,
+        });
+      } catch(e) {}
+    }
+  });
+}
+
+// Первый рендер
+renderAll();
+</script>
+</body>
+</html>
