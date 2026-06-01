@@ -422,35 +422,40 @@ function sendAll(){
   }
   showSend(true,'Отправляю '+queue.length+' выезд(ов)...');
   document.getElementById('bs').disabled=true;
-  // Отправляем через GET с CORS (Google Apps Script поддерживает CORS на GET)
-  var payload = JSON.stringify({vehicle:VEHICLE.sheet, entries:queue});
-  var sendUrl = WEBAPP_URL + '?action=addEntries&data=' + encodeURIComponent(payload);
-
-  // Если URL слишком длинный (>7000) — разбиваем на части
-  if(sendUrl.length > 7000){
-    sendBatched(queue.slice());
-    return;
-  }
-
-  fetch(sendUrl, {method:'GET', mode:'cors'})
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if(d && d.status==='ok'){
-        moveSent();
-        showSend(false);
-        toast('Отправлено ' + (d.added||queue.length) + ' выездов ✓');
-        setTimeout(function(){loadJournalFromSheets();}, 1500);
-      } else {
-        showSend(false);
-        document.getElementById('bs').disabled=false;
-        toast('Ошибка: '+(d?d.message:'неизвестная'),'err');
-      }
-    })
-    .catch(function(err){
+  var payload=JSON.stringify({vehicle:VEHICLE.sheet,entries:queue});
+  var cbName='gsmsave_'+Date.now();
+  var done=false;
+  window[cbName]=function(resp){
+    done=true;
+    moveSent();
+    showSend(false);
+    toast('Отправлено ✓');
+    setTimeout(function(){loadJournalFromSheets();},1500);
+    delete window[cbName];
+    if(scr.parentNode)scr.parentNode.removeChild(scr);
+  };
+  var scr=document.createElement('script');
+  scr.src=WEBAPP_URL+'?action=save&callback='+cbName+'&data='+encodeURIComponent(payload);
+  scr.onerror=function(){
+    if(done)return;
+    showSend(false);
+    document.getElementById('bs').disabled=false;
+    var tsv=queue.map(function(e){return [e.date,e.vehicle,e.purpose,e.route,e.tOut||'',e.tIn||'',e.spidoOut,e.spidoIn,e.km,e.narAgr,e.narNoAgr,e.rProbeg,e.rAgr,e.rNoAgr,e.fuel,e.rashod,e.bakStart,e.bakEnd,e.driver].join(TAB);}).join(NL);
+    if(navigator.clipboard)navigator.clipboard.writeText(tsv).catch(function(){});
+    toast('Нет сети — данные скопированы в буфер','err');
+    delete window[cbName];
+    if(scr.parentNode)scr.parentNode.removeChild(scr);
+  };
+  document.body.appendChild(scr);
+  setTimeout(function(){
+    if(!done&&window[cbName]){
       showSend(false);
       document.getElementById('bs').disabled=false;
-      toast('Нет связи с таблицей','err');
-    });
+      toast('Таймаут — попробуйте ещё раз','err');
+      delete window[cbName];
+      if(scr.parentNode)scr.parentNode.removeChild(scr);
+    }
+  },15000);
 }
 
 // Отправка по частям если данных много
