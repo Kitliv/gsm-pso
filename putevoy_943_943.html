@@ -641,13 +641,14 @@ function doCancelEntry(){
     reason=document.getElementById('cancel-other-text').value.trim();
     if(!reason){toast('Напишите причину','err');return;}
   }
-  // Находим запись в sent и помечаем как отменённую
+  // Помечаем в localStorage
+  var cancelDate=new Date().toLocaleDateString('ru-RU');
   for(var i=0;i<sent.length;i++){
     if(sent[i].id===cancelTargetId){
       sent[i].cancelled=true;
       sent[i].cancelReason=reason;
       sent[i].cancelBy=who;
-      sent[i].cancelDate=new Date().toLocaleDateString('ru-RU');
+      sent[i].cancelDate=cancelDate;
       break;
     }
   }
@@ -657,6 +658,29 @@ function doCancelEntry(){
   renderLog();
   updateStrip();
   toast('Запись отменена');
+  // Отправляем отмену в Google Sheets
+  if(WEBAPP_URL && WEBAPP_URL.indexOf('ВСТАВИТЬ')<0){
+    sendCancelToSheets(cancelTargetId, reason, who, cancelDate);
+  }
+}
+
+function sendCancelToSheets(entryId, reason, who, cancelDate){
+  var cbName='gsmcancel_'+Date.now();
+  var payload=JSON.stringify({
+    vehicle:VEHICLE.sheet,
+    entryId:entryId,
+    reason:reason,
+    cancelBy:who,
+    cancelDate:cancelDate
+  });
+  window[cbName]=function(){
+    delete window[cbName];
+    if(scr.parentNode)scr.parentNode.removeChild(scr);
+  };
+  var scr=document.createElement('script');
+  scr.src=WEBAPP_URL+'?action=cancel&callback='+cbName+'&data='+encodeURIComponent(payload);
+  scr.onerror=function(){delete window[cbName];if(scr.parentNode)scr.parentNode.removeChild(scr);};
+  document.body.appendChild(scr);
 }
 
 // Привязка кнопок модалки
