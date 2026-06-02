@@ -268,7 +268,7 @@ select option{background:var(--card)}
 <div class="sov" id="sov"><div class="spin"></div><div class="stxt" id="stxt">Отправляю...</div></div>
 <div class="toast" id="toast"></div>
 <script>
-var WEBAPP_URL='https://script.google.com/macros/s/AKfycbzqtvvNv4s6AY5A1_C6WPUjE2joF9IAcGpxZG8Prqjpax0IBCURABXLxonLy9M95XZW4w/exec';
+var WEBAPP_URL='https://script.google.com/macros/s/AKfycbzFhh1BmnJyLwHhSE_BAd0dpPj2C5mtGDBvYo5z58Dvih1SELyotzDrL0b5wUk3bn1JwQ/exec';
 var VEHICLE={gosnom:'К 935 АУ 750',type:'АКП-50 (6540)',psh:'75 ПСЧ',fuel:'ДТ',sheet:'АКП 50',isCar:false,normKm:0.34,normXx:0.11,normPump:0.2,initSpido:0,initFuel:0.0};
 var TAB=String.fromCharCode(9), NL=String.fromCharCode(10);
 var queue=[], sent=[], selP=null, selPCls=null;
@@ -297,7 +297,8 @@ function isWinterMonth(dateStr){
 }
 function updateCarry(){
   // Базовые значения: из таблицы "Остатки" если есть, иначе зашитые
-  var baseSpido = (sheetInitSpido!=null && sheetInitSpido>0) ? sheetInitSpido : VEHICLE.initSpido;
+  // Приоритет: из таблицы "Остатки" → зашитые в форму
+  var baseSpido = (sheetInitSpido!=null) ? sheetInitSpido : VEHICLE.initSpido;
   var baseFuel  = (sheetInitFuel!=null) ? sheetInitFuel : VEHICLE.initFuel;
   // Фильтруем: берём только активные (не отменённые)
   var active=sent.filter(function(e){return !e.cancelled;}).concat(queue);
@@ -343,10 +344,10 @@ function recalc(){
   var rAgr=Math.round(nAgr*VEHICLE.normPump*100)/100;
   var rNoAgr=Math.round(nNo*VEHICLE.normXx*100)/100;
   var rashod=Math.round((rProbeg+rAgr+rNoAgr)*100)/100;
-  document.getElementById('r-probeg').textContent=rProbeg+' л'+(winterK>1?' (зима)':'');
-  document.getElementById('r-agr').textContent=rAgr+' л';
-  document.getElementById('r-noagr').textContent=rNoAgr+' л';
-  document.getElementById('rashod').textContent=rashod+' л';
+  document.getElementById('r-probeg').textContent=rProbeg.toFixed(2)+' л'+(winterK>1?' (зима)':'');
+  document.getElementById('r-agr').textContent=rAgr.toFixed(2)+' л';
+  document.getElementById('r-noagr').textContent=rNoAgr.toFixed(2)+' л';
+  document.getElementById('rashod').textContent=rashod.toFixed(2)+' л';
   // Остатки
   document.getElementById('bak-start').textContent=curBakStart.toFixed(2)+' л';
   var bakEnd=Math.round((curBakStart+fuel-rashod)*100)/100;
@@ -591,9 +592,9 @@ function updateStrip(){
   var km=0,rashod=0;
   for(var i=0;i<all.length;i++){km+=all[i].km||0;rashod+=all[i].rashod||0;}
   document.getElementById('sk').textContent=km.toLocaleString('ru-RU');
-  document.getElementById('sr').textContent=rashod.toFixed(1);
+  document.getElementById('sr').textContent=rashod.toFixed(2);
   updateCarry();
-  document.getElementById('sb').textContent=curBakStart.toFixed(1);
+  document.getElementById('sb').textContent=curBakStart.toFixed(2);
 }
 function showSend(s,t){document.getElementById('sov').classList.toggle('open',s);if(t)document.getElementById('stxt').textContent=t;}
 function toast(m,t){var el=document.getElementById('toast');el.textContent=m;el.className='toast'+(t?' '+t:'');el.classList.add('show');setTimeout(function(){el.classList.remove('show');},3000);}
@@ -750,8 +751,11 @@ function loadJournalFromSheets(){
     try{
       // Начальные остатки из таблицы "Остатки"
       if(data && data.initValues){
-        if(data.initValues.spido != null) sheetInitSpido = parseFloat(data.initValues.spido)||0;
-        if(data.initValues.fuel != null)  sheetInitFuel  = parseFloat(data.initValues.fuel)||0;
+        var iv = data.initValues;
+        sheetInitSpido = (iv.spido !== undefined && iv.spido !== null) ? parseFloat(iv.spido) : null;
+        sheetInitFuel  = (iv.fuel !== undefined && iv.fuel !== null) ? parseFloat(iv.fuel) : null;
+        if(isNaN(sheetInitSpido)) sheetInitSpido = null;
+        if(isNaN(sheetInitFuel))  sheetInitFuel = null;
       }
       if(data && data.entries){
         var existingIds = {};
@@ -770,7 +774,11 @@ function loadJournalFromSheets(){
       // Применяем начальные остатки (важно когда записей ещё нет)
       updateCarry();
       updateStrip();
-      if(el && (!data.entries || data.entries.length===0)) el.textContent='✓ актуально';
+      if(el){
+        if(data.entries && data.entries.length>0) el.textContent='✓ синхронизировано';
+        else if(sheetInitSpido!=null || sheetInitFuel!=null) el.textContent='✓ остатки загружены';
+        else el.textContent='✓ актуально';
+      }
     } catch(err){ if(el) el.textContent='✗ ошибка'; }
     // Чистим
     delete window[cbName];
