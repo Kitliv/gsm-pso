@@ -273,6 +273,8 @@ var VEHICLE={gosnom:'В 220 КХ 790',type:'Форд Транзит (АСО)',ps
 var TAB=String.fromCharCode(9), NL=String.fromCharCode(10);
 var queue=[], sent=[], selP=null, selPCls=null;
 var curSpidoStart=VEHICLE.initSpido, curBakStart=VEHICLE.initFuel;
+// Начальные значения из таблицы (лист "Остатки") — приоритет над зашитыми
+var sheetInitSpido=null, sheetInitFuel=null;
 
 document.getElementById('vn').textContent=VEHICLE.gosnom;
 document.getElementById('vs').textContent=VEHICLE.type+' · '+VEHICLE.psh+' · '+VEHICLE.fuel;
@@ -294,15 +296,18 @@ function isWinterMonth(dateStr){
   return (m>=11||m<=3);
 }
 function updateCarry(){
+  // Базовые значения: из таблицы "Остатки" если есть, иначе зашитые
+  var baseSpido = (sheetInitSpido!=null && sheetInitSpido>0) ? sheetInitSpido : VEHICLE.initSpido;
+  var baseFuel  = (sheetInitFuel!=null) ? sheetInitFuel : VEHICLE.initFuel;
   // Фильтруем: берём только активные (не отменённые)
   var active=sent.filter(function(e){return !e.cancelled;}).concat(queue);
   if(active.length>0){
     var last=active[active.length-1];
-    curSpidoStart=last.spidoEnd!=null?last.spidoEnd:VEHICLE.initSpido;
-    curBakStart=last.bakEnd!=null?last.bakEnd:VEHICLE.initFuel;
+    curSpidoStart=last.spidoEnd!=null?last.spidoEnd:baseSpido;
+    curBakStart=last.bakEnd!=null?last.bakEnd:baseFuel;
   }else{
-    curSpidoStart=VEHICLE.initSpido;
-    curBakStart=VEHICLE.initFuel;
+    curSpidoStart=baseSpido;
+    curBakStart=baseFuel;
   }
 }
 function checkOnline(){
@@ -743,6 +748,11 @@ function loadJournalFromSheets(){
   var cbName = 'gsmcb_' + Date.now();
   window[cbName] = function(data){
     try{
+      // Начальные остатки из таблицы "Остатки"
+      if(data && data.initValues){
+        if(data.initValues.spido != null) sheetInitSpido = parseFloat(data.initValues.spido)||0;
+        if(data.initValues.fuel != null)  sheetInitFuel  = parseFloat(data.initValues.fuel)||0;
+      }
       if(data && data.entries){
         var existingIds = {};
         for(var i=0;i<sent.length;i++) existingIds[String(sent[i].id)]=true;
@@ -757,6 +767,10 @@ function loadJournalFromSheets(){
         }
         if(data.lastEntry) updateCarryFromSheets(data.lastEntry);
       }
+      // Применяем начальные остатки (важно когда записей ещё нет)
+      updateCarry();
+      updateStrip();
+      if(el && (!data.entries || data.entries.length===0)) el.textContent='✓ актуально';
     } catch(err){ if(el) el.textContent='✗ ошибка'; }
     // Чистим
     delete window[cbName];
