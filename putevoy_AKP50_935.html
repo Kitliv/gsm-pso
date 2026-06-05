@@ -112,6 +112,16 @@ input:focus,select:focus{border-color:var(--fire);background:#1E1510}
 .toast{position:fixed;bottom:95px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--green);color:#fff;font-size:14px;font-weight:500;padding:10px 20px;border-radius:18px;opacity:0;transition:all .25s;z-index:400;text-align:center;max-width:90vw;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.err{background:var(--red)}
+
+.trip-row{padding:11px 14px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.01)}
+.trip-row:last-child{border-bottom:none}
+.trip-cancelled{opacity:.45}
+.trip-cancelled .trip-route{text-decoration:line-through}
+.trip-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.trip-time{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--sub)}
+.trip-km{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--gold)}
+.trip-route{font-size:12px;color:var(--text);font-weight:500}
+.trip-cancel-btn{margin-top:8px;width:100%;background:transparent;border:1px solid rgba(232,64,64,.3);border-radius:8px;color:var(--red);font-size:12px;padding:8px;cursor:pointer}
 .pl-card.cancelled{opacity:0.45;}
 .pl-card.cancelled .pl-route{text-decoration:line-through;}
 .pl-card.cancelled .pl-km{text-decoration:line-through;color:var(--dim);}
@@ -295,6 +305,54 @@ function isWinterMonth(dateStr){
   var m=parseInt(dateStr.split('-')[1])||0;
   return (m>=11||m<=3);
 }
+function recalculateChain(){
+  // Базовые значения: из таблицы "Остатки" → зашитые
+  var baseSpido = (sheetInitSpido!=null) ? sheetInitSpido : VEHICLE.initSpido;
+  var baseFuel  = (sheetInitFuel!=null) ? sheetInitFuel : VEHICLE.initFuel;
+
+  // Все записи (отправленные + очередь), сортируем хронологически
+  var all = sent.concat(queue);
+  all.sort(function(a,b){
+    var ka = sortKey(a), kb = sortKey(b);
+    return ka < kb ? -1 : (ka > kb ? 1 : 0);
+  });
+
+  var runSpido = baseSpido;
+  var runFuel  = baseFuel;
+
+  for(var i=0;i<all.length;i++){
+    var e = all[i];
+    if(e.cancelled) continue;  // отменённые пропускаем — цепочка идёт мимо них
+    // Пересчитываем значения цепочки для этой записи
+    e.spidoOut = runSpido;
+    e.spidoIn  = Math.round((runSpido + (e.km||0))*100)/100;
+    e.spidoEnd = e.spidoIn;
+    e.bakStart = Math.round(runFuel*100)/100;
+    e.bakEnd   = Math.round((runFuel + (e.fuel||0) - (e.rashod||0))*100)/100;
+    // Двигаем указатели
+    runSpido = e.spidoIn;
+    runFuel  = e.bakEnd;
+  }
+
+  // Текущие значения для нового выезда
+  curSpidoStart = runSpido;
+  curBakStart   = runFuel;
+
+  // Сохраняем пересчитанные значения
+  localStorage.setItem('s_'+VEHICLE.sheet, JSON.stringify(sent));
+  localStorage.setItem('q_'+VEHICLE.sheet, JSON.stringify(queue));
+}
+
+// Ключ сортировки: дата + время выезда
+function sortKey(e){
+  var d = e.dateISO ? new Date(e.dateISO) : new Date();
+  var ymd = d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate();
+  var t = (e.tOut||'00:00').match(/(\d{1,2}):(\d{2})/);
+  var mins = t ? (parseInt(t[1])*60 + parseInt(t[2])) : 0;
+  // id как финальный тай-брейк для записей в одно время
+  return ymd * 100000 + mins * 10 + ((e.id||0) % 10);
+}
+
 function updateCarry(){
   // Базовые значения: из таблицы "Остатки" если есть, иначе зашитые
   // Приоритет: из таблицы "Остатки" → зашитые в форму
@@ -527,73 +585,157 @@ function renderLog(){
   var lw=document.getElementById('lw'),le=document.getElementById('le');
   if(!sent.length){le.style.display='block';lw.innerHTML='';lw.appendChild(le);return;}
   le.style.display='none';lw.innerHTML='';
-  var byM={};
-  for(var i=0;i<sent.length;i++){
-    var e=sent[i];var d=new Date(e.dateISO);
-    var k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-    var lbl=d.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
-    if(!byM[k])byM[k]={lbl:lbl,rows:[]};
-    byM[k].rows.push(e);
+
+  // Определяем дежурные сутки: смена 8:00-8:00.
+  // Выезд раньше 8:00 относится к смене ПРЕДЫДУЩЕГО дня.
+  function shiftDate(e){
+    var d = new Date(e.dateISO);
+    var t = (e.tOut||'08:00').match(/(\d{1,2}):(\d{2})/);
+    var h = t ? parseInt(t[1]) : 8;
+    var sd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    if(h < 8){ sd.setDate(sd.getDate()-1); } // до 8:00 — смена предыдущего дня
+    return sd;
   }
-  var keys=Object.keys(byM).sort().reverse();
+
+  // Группируем по сменам
+  var shifts = {};
+  for(var i=0;i<sent.length;i++){
+    var e=sent[i];
+    var sd=shiftDate(e);
+    var key=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0')+'-'+String(sd.getDate()).padStart(2,'0');
+    if(!shifts[key]) shifts[key]={date:sd, rows:[]};
+    shifts[key].rows.push(e);
+  }
+
+  // Сортируем смены: новые сверху
+  var keys=Object.keys(shifts).sort().reverse();
+
+  // Группируем смены по месяцам для заголовков
+  var lastMonth='';
   for(var j=0;j<keys.length;j++){
-    var m=byM[keys[j]];
-    var mEl=document.createElement('div');mEl.className='lmonth';mEl.textContent=m.lbl.toUpperCase();lw.appendChild(mEl);
-    var rows=m.rows.slice().reverse();
-    for(var r=0;r<rows.length;r++){lw.appendChild(makePLCard(rows[r]));}
+    var sh=shifts[keys[j]];
+    var monthLbl=sh.date.toLocaleDateString('ru-RU',{month:'long',year:'numeric'}).toUpperCase();
+    if(monthLbl!==lastMonth){
+      var mEl=document.createElement('div');mEl.className='lmonth';mEl.textContent=monthLbl;lw.appendChild(mEl);
+      lastMonth=monthLbl;
+    }
+    // Сортируем выезды внутри смены по времени
+    sh.rows.sort(function(a,b){ return sortKey(a)-sortKey(b); });
+    lw.appendChild(makeShiftCard(sh, keys[j]));
   }
 }
-function makePLCard(e){
-  var d=new Date(e.dateISO);var day=d.getDate();
+function makeShiftCard(shift, shiftKey){
+  var d=shift.date;
+  var day=d.getDate();
   var wd=d.toLocaleDateString('ru-RU',{weekday:'short'});
-  var cls={'ЕТО':'eto','занятия':'zan','ложный':'lozh'}[e.purpose]||'';
-  var plNum='№'+(e.id%10000);
-  var workHtml=VEHICLE.isCar?'':
-    '<div class="pl-field"><div class="lbl">НАРАБ. НАСОС</div><div class="val acc">'+(e.narAgr||0)+' мин → '+(e.rAgr||0)+' л</div></div>'+
-    '<div class="pl-field"><div class="lbl">НАРАБ. ХОЛ.ХОД</div><div class="val acc">'+(e.narNoAgr||0)+' мин → '+(e.rNoAgr||0)+' л</div></div>';
-  var card=document.createElement('div');card.className='pl-card';
-  card.innerHTML=
+  var dateStr=d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+
+  // Активные выезды смены (не отменённые)
+  var active=shift.rows.filter(function(e){return !e.cancelled;});
+  // Считаем итоги смены: пробег, расход. ЕТО не считается выездом!
+  var totalKm=0, totalRashod=0, tripCount=0, etoCount=0, totalFuel=0;
+  active.forEach(function(e){
+    totalKm += e.km||0;
+    totalRashod += e.rashod||0;
+    totalFuel += e.fuel||0;
+    if(e.purpose==='ЕТО'){ etoCount++; } else { tripCount++; }
+  });
+
+  // Остаток на конец смены — из последнего активного выезда
+  var lastBak = active.length>0 ? active[active.length-1].bakEnd : null;
+  var firstBak = active.length>0 ? active[0].bakStart : null;
+
+  var card=document.createElement('div'); card.className='pl-card';
+
+  // Шапка смены
+  var shiftId='shift_'+shiftKey.replace(/[^0-9]/g,'');
+  var head=
     '<div class="pl-head">'+
       '<div class="pl-day"><div class="pl-daynum">'+day+'</div><div class="pl-daywd">'+wd+'</div></div>'+
-      '<div class="pl-info"><div class="pl-num">'+plNum+' · '+e.date+(e.cancelled?' · <span class="cancelled-badge">ОТМЕНЕНА</span>':'')+'</div><div class="pl-route">'+(e.route||'маршрут не указан')+'</div></div>'+
-      '<div class="pl-right"><div class="pl-km">'+e.km+'</div><div class="pl-kmunit">км</div></div>'+
-    '</div>'+
-    '<div class="pl-body" id="plb_'+e.id+'">'+
-      '<div class="pl-section"><div class="pl-sec-title">Цель</div><div class="pl-badge '+cls+'"><div class="pbtxt">'+e.purpose.toUpperCase()+'</div></div></div>'+
-      '<div class="pl-section"><div class="pl-sec-title">Время</div><div class="pl-grid">'+
-        '<div class="pl-field"><div class="lbl">ВЫЕЗД</div><div class="val">'+(e.tOut||'—')+'</div></div>'+
-        '<div class="pl-field"><div class="lbl">ВОЗВРАТ В ППД</div><div class="val">'+(e.tIn||'—')+'</div></div></div></div>'+
-      '<div class="pl-section"><div class="pl-sec-title">Спидометр</div>'+
-        '<div class="pl-spido">'+e.spidoOut.toLocaleString('ru-RU')+'<span class="pl-arrow">→</span>'+e.spidoIn.toLocaleString('ru-RU')+'</div>'+
-        '<div style="font-size:12px;color:var(--sub);margin-top:4px">Пробег: <b style="color:var(--gold)">'+e.km+' км</b></div></div>'+
-      '<div class="pl-section"><div class="pl-sec-title">Топливо (помощь для путевого)</div><div class="pl-grid">'+
-        workHtml+
-        '<div class="pl-field"><div class="lbl">РАСХОД ПО ПРОБЕГУ</div><div class="val acc">'+(e.rProbeg||0)+' л</div></div>'+
-        '<div class="pl-field"><div class="lbl">ИТОГО РАСХОД</div><div class="val acc">'+(e.rashod||0)+' л</div></div>'+
-        '<div class="pl-field"><div class="lbl">ЗАПРАВЛЕНО</div><div class="val">'+(e.fuel>0?e.fuel+' л':'—')+'</div></div>'+
-        '<div class="pl-field"><div class="lbl">ОСТАТОК НАЧАЛО</div><div class="val">'+(e.bakStart!=null?e.bakStart.toFixed(2)+' л':'—')+'</div></div>'+
-        '<div class="pl-field"><div class="lbl">ОСТАТОК КОНЕЦ</div><div class="val acc">'+(e.bakEnd!=null?e.bakEnd.toFixed(2)+' л':'—')+'</div></div>'+
-        '<div class="pl-field"><div class="lbl">ВОДИТЕЛЬ</div><div class="val" style="font-size:11px">'+e.driver+'</div></div></div></div>'+
-      (e.cancelled?'<div class="pl-section"><div class="cancelled-badge">✕ ОТМЕНЕНА: '+e.cancelReason+' ('+e.cancelBy+')</div></div>':
-        '<div class="pl-section" style="text-align:center"><button class="btn-more" style="width:100%;color:var(--red);border-color:rgba(232,64,64,.3)" data-cancel="'+e.id+'">Отменить запись</button></div>')+
+      '<div class="pl-info">'+
+        '<div class="pl-num">Смена '+dateStr+' · 8:00→8:00</div>'+
+        '<div class="pl-route">'+tripCount+' выезд(ов)'+(etoCount>0?' · '+etoCount+' ЕТО':'')+'</div>'+
+      '</div>'+
+      '<div class="pl-right"><div class="pl-km">'+totalKm+'</div><div class="pl-kmunit">км / '+totalRashod.toFixed(2)+'л</div></div>'+
     '</div>';
+
+  // Тело: список выездов
+  var body='<div class="pl-body" id="'+shiftId+'">';
+
+  // Сводка смены
+  body+='<div class="pl-section" style="background:rgba(232,160,32,.06)">'+
+    '<div class="pl-sec-title">Итог за смену</div>'+
+    '<div class="pl-grid">'+
+      '<div class="pl-field"><div class="lbl">ВЫЕЗДОВ</div><div class="val acc">'+tripCount+'</div></div>'+
+      '<div class="pl-field"><div class="lbl">ЕТО</div><div class="val">'+etoCount+'</div></div>'+
+      '<div class="pl-field"><div class="lbl">ПРОБЕГ ЗА СМЕНУ</div><div class="val acc">'+totalKm+' км</div></div>'+
+      '<div class="pl-field"><div class="lbl">РАСХОД ЗА СМЕНУ</div><div class="val acc">'+totalRashod.toFixed(2)+' л</div></div>'+
+      (firstBak!=null?'<div class="pl-field"><div class="lbl">ОСТАТОК НАЧАЛО</div><div class="val">'+firstBak.toFixed(2)+' л</div></div>':'')+
+      (lastBak!=null?'<div class="pl-field"><div class="lbl">ОСТАТОК КОНЕЦ</div><div class="val acc">'+lastBak.toFixed(2)+' л</div></div>':'')+
+    '</div>'+
+  '</div>';
+
+  // Каждый выезд внутри смены
+  for(var i=0;i<shift.rows.length;i++){
+    body+=makeTripRow(shift.rows[i]);
+  }
+
+  body+='</div>';
+
+  card.innerHTML=head+body;
   (function(id){
     var h=card.querySelector('.pl-head');
     h.addEventListener('touchend',function(ev){ev.preventDefault();togglePL(id);});
     h.addEventListener('click',function(){togglePL(id);});
-  })(e.id);
+  })(shiftId);
   return card;
+}
+
+// Один выезд внутри смены
+function makeTripRow(e){
+  var cls={'ЕТО':'eto','занятия':'zan','ложный':'lozh'}[e.purpose]||'';
+  var t=(e.tOut||'')+(e.tIn?'→'+e.tIn:'');
+  var isCancelled=e.cancelled;
+  var workHtml=VEHICLE.isCar?'':
+    '<div class="pl-field"><div class="lbl">НАСОС</div><div class="val acc">'+(e.narAgr||0)+' мин → '+((e.rAgr||0).toFixed(2))+' л</div></div>'+
+    '<div class="pl-field"><div class="lbl">ХОЛОСТОЙ</div><div class="val acc">'+(e.narNoAgr||0)+' мин → '+((e.rNoAgr||0).toFixed(2))+' л</div></div>';
+
+  var html='<div class="trip-row'+(isCancelled?' trip-cancelled':'')+'">'+
+    '<div class="trip-head">'+
+      '<span class="pl-badge '+cls+'"><span class="pbtxt">'+e.purpose.toUpperCase()+'</span></span>'+
+      '<span class="trip-time">'+t+'</span>'+
+      '<span class="trip-km">'+(e.km||0)+' км</span>'+
+    '</div>'+
+    '<div class="trip-route">'+(e.route||'маршрут не указан')+'</div>'+
+    '<div class="pl-grid" style="margin-top:8px">'+
+      '<div class="pl-field"><div class="lbl">СПИДОМЕТР</div><div class="val">'+(e.spidoOut||0).toLocaleString("ru-RU")+'→'+(e.spidoIn||0).toLocaleString("ru-RU")+'</div></div>'+
+      '<div class="pl-field"><div class="lbl">РАСХОД ИТОГО</div><div class="val acc">'+((e.rashod||0).toFixed(2))+' л</div></div>'+
+      workHtml+
+      '<div class="pl-field"><div class="lbl">ПО ПРОБЕГУ</div><div class="val">'+((e.rProbeg||0).toFixed(2))+' л</div></div>'+
+      '<div class="pl-field"><div class="lbl">ЗАПРАВЛЕНО</div><div class="val">'+(e.fuel>0?e.fuel.toFixed(2)+' л':'—')+'</div></div>'+
+      '<div class="pl-field"><div class="lbl">ОСТАТОК</div><div class="val">'+((e.bakStart||0).toFixed(2))+'→'+((e.bakEnd||0).toFixed(2))+'</div></div>'+
+      '<div class="pl-field"><div class="lbl">ВОДИТЕЛЬ</div><div class="val" style="font-size:11px">'+e.driver+'</div></div>'+
+    '</div>'+
+    (isCancelled?
+      '<div class="cancelled-badge" style="margin-top:6px">✕ ОТМЕНЕНА: '+(e.cancelReason||'')+' ('+(e.cancelBy||'')+')</div>':
+      '<button class="trip-cancel-btn" data-cancel="'+e.id+'">Отменить выезд</button>')+
+  '</div>';
+  return html;
 }
 function togglePL(id){var b=document.getElementById('plb_'+id);if(b)b.classList.toggle('open');}
 function updateStrip(){
-  // Считаем только активные (не отменённые)
-  var all=sent.filter(function(e){return !e.cancelled;}).concat(queue);
-  document.getElementById('st').textContent=all.length;
-  var km=0,rashod=0;
-  for(var i=0;i<all.length;i++){km+=all[i].km||0;rashod+=all[i].rashod||0;}
+  // Считаем только активные (не отменённые). ЕТО НЕ выезд!
+  var all=sent.filter(function(e){return !e.cancelled;}).concat(queue.filter(function(e){return !e.cancelled;}));
+  var tripCount=0, km=0, rashod=0;
+  for(var i=0;i<all.length;i++){
+    km+=all[i].km||0;
+    rashod+=all[i].rashod||0;
+    if(all[i].purpose!=='ЕТО') tripCount++;  // ЕТО не считаем выездом
+  }
+  document.getElementById('st').textContent=tripCount;
   document.getElementById('sk').textContent=km.toLocaleString('ru-RU');
   document.getElementById('sr').textContent=rashod.toFixed(2);
-  updateCarry();
+  recalculateChain();
   document.getElementById('sb').textContent=curBakStart.toFixed(2);
 }
 function showSend(s,t){document.getElementById('sov').classList.toggle('open',s);if(t)document.getElementById('stxt').textContent=t;}
