@@ -722,7 +722,7 @@ function makeTripRow(e){
   '</div>';
   return html;
 }
-function togglePL(id){var b=document.getElementById('plb_'+id);if(b)b.classList.toggle('open');}
+function togglePL(id){var b=document.getElementById(id);if(b)b.classList.toggle('open');}
 function updateStrip(){
   // Считаем только активные (не отменённые). ЕТО НЕ выезд!
   var all=sent.filter(function(e){return !e.cancelled;}).concat(queue.filter(function(e){return !e.cancelled;}));

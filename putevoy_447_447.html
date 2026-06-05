@@ -279,7 +279,7 @@ select option{background:var(--card)}
 <div class="toast" id="toast"></div>
 <script>
 var WEBAPP_URL='https://script.google.com/macros/s/AKfycbzFhh1BmnJyLwHhSE_BAd0dpPj2C5mtGDBvYo5z58Dvih1SELyotzDrL0b5wUk3bn1JwQ/exec';
-var VEHICLE={gosnom:'Т 447 АС 190',type:'АР-2 (131)',psh:'29 ПСЧ',fuel:'АИ-92',sheet:'447',isCar:false,normKm:0.55,normXx:0.15,normPump:0.25,initSpido:8724,initFuel:84.95};
+var VEHICLE={gosnom:'Т 447 АС 190',type:'АР-2 (131)',psh:'29 ПСЧ',fuel:'АИ-92',sheet:'447',isCar:false,normKm:0.55,normXx:0.15,normPump:0.25,initSpido:8755,initFuel:164.95};
 var TAB=String.fromCharCode(9), NL=String.fromCharCode(10);
 var queue=[], sent=[], selP=null, selPCls=null;
 var curSpidoStart=VEHICLE.initSpido, curBakStart=VEHICLE.initFuel;
@@ -722,7 +722,7 @@ function makeTripRow(e){
   '</div>';
   return html;
 }
-function togglePL(id){var b=document.getElementById('plb_'+id);if(b)b.classList.toggle('open');}
+function togglePL(id){var b=document.getElementById(id);if(b)b.classList.toggle('open');}
 function updateStrip(){
   // Считаем только активные (не отменённые). ЕТО НЕ выезд!
   var all=sent.filter(function(e){return !e.cancelled;}).concat(queue.filter(function(e){return !e.cancelled;}));
