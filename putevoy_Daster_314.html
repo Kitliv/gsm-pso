@@ -296,15 +296,26 @@ if(VEHICLE.isCar){
   document.getElementById('r-noagr-box').classList.add('car-hidden');
 }
 
-var sQ=localStorage.getItem('q_'+VEHICLE.sheet), sS=localStorage.getItem('s_'+VEHICLE.sheet);
+// Журнал (sent) НЕ храним в localStorage — он всегда подтягивается из таблицы (источник правды).
+// В localStorage только очередь неотправленного (queue).
+var sQ=localStorage.getItem('q_'+VEHICLE.sheet);
 if(sQ){try{queue=JSON.parse(sQ);}catch(e){}}
-if(sS){try{sent=JSON.parse(sS);}catch(e){}}
+sent=[]; // журнал загрузится из таблицы при старте
 
 function isWinterMonth(dateStr){
   // dateStr = YYYY-MM-DD; зима ноябрь-март
   var m=parseInt(dateStr.split('-')[1])||0;
   return (m>=11||m<=3);
 }
+// Извлекает ЧЧ:ММ из любого значения (строка, дата, мусор из Sheets)
+function fmtTime(v){
+  if(!v) return '';
+  var s = String(v);
+  var m = s.match(/(\d{1,2}):(\d{2})/);
+  if(m) return ('0'+m[1]).slice(-2)+':'+m[2];
+  return '';
+}
+
 function recalculateChain(){
   // Базовые значения: из таблицы "Остатки" → зашитые
   var baseSpido = (sheetInitSpido!=null) ? sheetInitSpido : VEHICLE.initSpido;
@@ -338,8 +349,7 @@ function recalculateChain(){
   curSpidoStart = runSpido;
   curBakStart   = runFuel;
 
-  // Сохраняем пересчитанные значения
-  localStorage.setItem('s_'+VEHICLE.sheet, JSON.stringify(sent));
+  // Сохраняем только очередь (журнал — в таблице)
   localStorage.setItem('q_'+VEHICLE.sheet, JSON.stringify(queue));
 }
 
@@ -547,10 +557,10 @@ function sendBatched(entries){
 }
 
 function moveSent(){
+  // Очередь отправлена — очищаем. Журнал обновится из таблицы (источник правды).
   for(var i=0;i<queue.length;i++){queue[i].sent=true;sent.push(queue[i]);}
   queue=[];
   localStorage.setItem('q_'+VEHICLE.sheet,JSON.stringify(queue));
-  localStorage.setItem('s_'+VEHICLE.sheet,JSON.stringify(sent));
   updateCarry(); renderQueue(); renderLog(); updateStrip();
 }
 function deleteFromQueue(id){
@@ -694,7 +704,7 @@ function makeShiftCard(shift, shiftKey){
 // Один выезд внутри смены
 function makeTripRow(e){
   var cls={'ЕТО':'eto','занятия':'zan','ложный':'lozh'}[e.purpose]||'';
-  var t=(e.tOut||'')+(e.tIn?'→'+e.tIn:'');
+  var t=fmtTime(e.tOut)+(fmtTime(e.tIn)?'→'+fmtTime(e.tIn):'');
   var isCancelled=e.cancelled;
   var workHtml=VEHICLE.isCar?'':
     '<div class="pl-field"><div class="lbl">НАСОС</div><div class="val acc">'+(e.narAgr||0)+' мин → '+((e.rAgr||0).toFixed(2))+' л</div></div>'+
@@ -800,7 +810,6 @@ function doCancelEntry(){
       break;
     }
   }
-  localStorage.setItem('s_'+VEHICLE.sheet, JSON.stringify(sent));
   closeCancelModal();
   updateCarry();
   renderLog();
@@ -821,14 +830,31 @@ function sendCancelToSheets(entryId, reason, who, cancelDate){
     cancelBy:who,
     cancelDate:cancelDate
   });
-  window[cbName]=function(){
+  var done=false;
+  window[cbName]=function(resp){
+    done=true;
     delete window[cbName];
     if(scr.parentNode)scr.parentNode.removeChild(scr);
+    // Перезагружаем журнал из таблицы — отмена применится из источника правды
+    setTimeout(function(){loadJournalFromSheets();}, 1200);
+    if(resp && resp.status==='ok') toast('Отмена записана в таблицу ✓');
   };
   var scr=document.createElement('script');
   scr.src=WEBAPP_URL+'?action=cancel&callback='+cbName+'&data='+encodeURIComponent(payload);
-  scr.onerror=function(){delete window[cbName];if(scr.parentNode)scr.parentNode.removeChild(scr);};
+  scr.onerror=function(){
+    if(done)return;
+    delete window[cbName];
+    if(scr.parentNode)scr.parentNode.removeChild(scr);
+    toast('Не удалось записать отмену — нет связи','err');
+  };
   document.body.appendChild(scr);
+  // Таймаут
+  setTimeout(function(){
+    if(!done && window[cbName]){
+      delete window[cbName];
+      toast('Отмена: таймаут связи','err');
+    }
+  }, 12000);
 }
 
 // Привязка кнопок модалки
@@ -887,7 +913,6 @@ function loadJournalFromSheets(){
   var el = document.getElementById('sync-status');
   if(el) el.textContent = '⟳ синхронизация...';
 
-  // JSONP обход CORS: создаём script с callback
   var cbName = 'gsmcb_' + Date.now();
   window[cbName] = function(data){
     try{
@@ -899,30 +924,20 @@ function loadJournalFromSheets(){
         if(isNaN(sheetInitSpido)) sheetInitSpido = null;
         if(isNaN(sheetInitFuel))  sheetInitFuel = null;
       }
+      // ТАБЛИЦА — ИСТОЧНИК ПРАВДЫ: полностью заменяем журнал данными из таблицы
       if(data && data.entries){
-        var existingIds = {};
-        for(var i=0;i<sent.length;i++) existingIds[String(sent[i].id)]=true;
-        var newFromServer = data.entries.filter(function(e){ return !existingIds[String(e.id)]; });
-        if(newFromServer.length > 0){
-          for(var j=0;j<newFromServer.length;j++) sent.push(newFromServer[j]);
-          localStorage.setItem('s_'+VEHICLE.sheet, JSON.stringify(sent));
-          updateCarry(); renderLog(); updateStrip();
-          if(el) el.textContent = '✓ обновлено (+'+newFromServer.length+')';
-        } else {
-          if(el) el.textContent = '✓ актуально';
-        }
-        if(data.lastEntry) updateCarryFromSheets(data.lastEntry);
+        sent = data.entries;  // не объединяем, а заменяем
       }
-      // Применяем начальные остатки (важно когда записей ещё нет)
-      updateCarry();
+      // Пересчитываем цепочку из свежих данных таблицы
+      recalculateChain();
+      renderLog();
       updateStrip();
       if(el){
-        if(data.entries && data.entries.length>0) el.textContent='✓ синхронизировано';
-        else if(sheetInitSpido!=null || sheetInitFuel!=null) el.textContent='✓ остатки загружены';
+        if(sent.length>0) el.textContent='✓ синхронизировано ('+sent.length+')';
+        else if(sheetInitSpido!=null||sheetInitFuel!=null) el.textContent='✓ остатки загружены';
         else el.textContent='✓ актуально';
       }
     } catch(err){ if(el) el.textContent='✗ ошибка'; }
-    // Чистим
     delete window[cbName];
     if(scr.parentNode) scr.parentNode.removeChild(scr);
   };
@@ -936,10 +951,9 @@ function loadJournalFromSheets(){
   };
   document.body.appendChild(scr);
 
-  // Таймаут на случай зависания
   setTimeout(function(){
     if(window[cbName]){ if(el) el.textContent='✗ таймаут'; delete window[cbName]; }
-  }, 10000);
+  }, 12000);
 }
 
 // Загружаем журнал при старте
